@@ -170,13 +170,12 @@ public final class TaskStore: Sendable {
         return try request.fetchAll(db)
     }
 
-    /// Tab：把任务缩进为「前一个兄弟」的子任务。V1 子任务只有一层，已是子任务则忽略。
+    /// Tab：把任务缩进为「同容器前一个兄弟」的子任务（任意层级；子树经 parentID 链自动跟随）。
+    /// 第一个兄弟没有前置兄弟，返回 false。
     @discardableResult
     public func indentTask(_ taskID: UUID) throws -> Bool {
         try db.write { db in
-            guard let task = try TaskItem.filter(id: taskID).fetchOne(db),
-                  task.parentID == nil
-            else { return false }
+            guard let task = try TaskItem.filter(id: taskID).fetchOne(db) else { return false }
 
             let list = try siblings(db, of: task)
             guard let index = list.firstIndex(where: { $0.id == taskID }), index > 0 else {
@@ -198,7 +197,7 @@ public final class TaskStore: Sendable {
         }
     }
 
-    /// ⇧Tab：把子任务提升为顶层任务（V1 只有一层嵌套）
+    /// ⇧Tab：把任务提升一级（parentID = 原父的父），插到原父之后；子树自动跟随。
     @discardableResult
     public func outdentTask(_ taskID: UUID) throws -> Bool {
         try db.write { db in
@@ -207,11 +206,11 @@ public final class TaskStore: Sendable {
                   let parent = try TaskItem.filter(id: parentID).fetchOne(db)
             else { return false }
 
-            // 同容器（父的容器）中排在父任务之后的兄弟整体后移一位
+            // 原父所在容器中排在原父之后的兄弟整体后移一位
             try shiftSiblings(db, after: parent, by: 1)
             try TaskItem.filter(id: taskID).updateAll(
                 db,
-                Column("parentID").set(to: nil),
+                Column("parentID").set(to: parent.parentID),
                 Column("sortIndex").set(to: parent.sortIndex + 1),
                 Column("updatedAt").set(to: Date())
             )
@@ -322,26 +321,38 @@ public final class TaskStore: Sendable {
         }
     }
 
-    /// 设置任务状态。完成/放弃父任务时级联处理其子任务；恢复不级联
+    /// 设置任务状态，整棵子树同步（多层大纲：完成/放弃/恢复父任务时递归作用于全部后代）
     public func setTaskStatus(_ taskID: UUID, _ status: ItemStatus) throws {
         _ = try db.write { db in
-            let now = Date()
-            try TaskItem.filter(id: taskID)
-                .updateAll(db, Column("status").set(to: status.rawValue), Column("updatedAt").set(to: now))
-            if status != .active {
-                try TaskItem
-                    .filter(Column("parentID") == taskID && Column("status") == ItemStatus.active.rawValue)
-                    .updateAll(db, Column("status").set(to: status.rawValue), Column("updatedAt").set(to: now))
-            }
+            let ids = try descendantIDs(db, root: taskID)
+            try TaskItem
+                .filter(ids.contains(Column("id")))
+                .updateAll(db, Column("status").set(to: status.rawValue), Column("updatedAt").set(to: Date()))
         }
     }
 
-    /// 删除任务及其子任务
+    /// 删除任务及其全部后代（递归）
     public func deleteTask(_ taskID: UUID) throws {
         _ = try db.write { db in
-            try TaskItem.filter(Column("parentID") == taskID).deleteAll(db)
-            try TaskItem.filter(id: taskID).deleteAll(db)
+            let ids = try descendantIDs(db, root: taskID)
+            try TaskItem.filter(ids.contains(Column("id"))).deleteAll(db)
         }
+    }
+
+    /// 收集任务及其全部后代 id（宽度优先遍历 parentID 链）
+    private func descendantIDs(_ db: Database, root taskID: UUID) throws -> Set<UUID> {
+        var queue = [taskID]
+        var visited: Set<UUID> = []
+        while let id = queue.popLast() {
+            guard visited.insert(id).inserted else { continue }
+            let children = try UUID.fetchAll(
+                db,
+                sql: "SELECT id FROM task WHERE parentID = ?",
+                arguments: [id]
+            )
+            queue.append(contentsOf: children)
+        }
+        return visited
     }
 
     // MARK: 查询
@@ -388,6 +399,24 @@ public final class TaskStore: Sendable {
                 request = request.filter(Column("status") == ItemStatus.active.rawValue)
             }
             return try request.fetchAll(db)
+        }
+    }
+
+    /// 全部子任务按父分组（任意层级），一次查询供 UI 递归渲染，替代逐父查询的 N+1
+    public func subtasksTree(includeCompleted: Bool = false) throws -> [UUID: [TaskItem]] {
+        try db.read { db in
+            var request = TaskItem.filter(Column("parentID") != nil).order(Column("sortIndex"))
+            if !includeCompleted {
+                request = request.filter(Column("status") == ItemStatus.active.rawValue)
+            }
+            let rows = try request.fetchAll(db)
+            var result: [UUID: [TaskItem]] = [:]
+            for row in rows {
+                if let parent = row.parentID {
+                    result[parent, default: []].append(row)
+                }
+            }
+            return result
         }
     }
 

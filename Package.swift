@@ -10,11 +10,14 @@ let package = Package(
     targets: [
         .target(
             name: "MyFocusKit",
-            dependencies: [.product(name: "GRDB", package: "GRDB.swift")]
+            dependencies: [.product(name: "GRDB", package: "GRDB.swift")],
+            exclude: ["Info.plist"]  // xcodegen 生成，仅供 Xcode 工程使用
         ),
         .executableTarget(
             name: "MyFocus",
-            dependencies: ["MyFocusKit"]
+            dependencies: ["MyFocusKit"],
+            exclude: ["Info.plist"],  // 同上
+            resources: [.process("Resources/Assets.xcassets")]
         ),
         .executableTarget(
             name: "Bench",

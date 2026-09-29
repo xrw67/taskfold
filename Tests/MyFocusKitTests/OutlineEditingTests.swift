@@ -38,13 +38,24 @@ struct OutlineEditingTests {
         #expect(try store.indentTask(a.id) == false, "第一个兄弟没有前置兄弟，不可缩进")
     }
 
-    @Test func indentSubtaskFailsInV1() throws {
+    @Test func indentSupportsMultipleLevels() throws {
         _ = try store.addTask(title: "A")
-        _ = try store.addTask(title: "B")
+        let b = try store.addTask(title: "B")
         let c = try store.addTask(title: "C")
-        try store.indentTask(c.id)
+        let d = try store.addTask(title: "D")
 
-        #expect(try store.indentTask(c.id) == false, "V1 只有一层子任务，已是子任务不可再缩进")
+        #expect(try store.indentTask(c.id) == true)  // C → B 下
+        #expect(try store.indentTask(d.id) == true)  // D → B 下
+        #expect(try store.indentTask(d.id) == true)  // D → C 下（第三层）
+
+        let cAfter = try store.task(id: c.id)!
+        let dAfter = try store.task(id: d.id)!
+        #expect(cAfter.parentID == b.id)
+        #expect(dAfter.parentID == c.id, "D 应可缩进为 C 的子任务（多层嵌套）")
+
+        let tree = try store.subtasksTree(includeCompleted: true)
+        #expect(titles(tree[b.id] ?? []) == ["C"])
+        #expect(titles(tree[c.id] ?? []) == ["D"])
     }
 
     // MARK: ⇧Tab 提升
@@ -64,9 +75,104 @@ struct OutlineEditingTests {
         #expect(try store.subtasks(of: b.id, includeCompleted: true).isEmpty)
     }
 
+    /// 中间层提升：C 从 B 下提升到 B 的父（A）下，且自己的子树（D）跟随
+    @Test func outdentMiddleLevelPromotesExactlyOneLevel() throws {
+        let a = try store.addTask(title: "A")
+        let b = try store.addTask(title: "B")
+        try store.indentTask(b.id)                       // B → A 下
+        let c = try store.addTask(title: "C", parentID: b.id)
+        let d = try store.addTask(title: "D", parentID: c.id)
+        // 结构：A → B → C → D（四层）
+
+        #expect(try store.outdentTask(c.id) == true)
+
+        let cAfter = try store.task(id: c.id)!
+        let dAfter = try store.task(id: d.id)!
+        let bAfter = try store.task(id: b.id)!
+        #expect(cAfter.parentID == a.id, "C 应提升一级到 A 下（而非直接到顶层）")
+        #expect(cAfter.sortIndex == bAfter.sortIndex + 1, "C 插到原父 B 的紧后面")
+        #expect(dAfter.parentID == c.id, "C 的子树 D 应跟随移动")
+        #expect(try store.task(id: a.id)!.parentID == nil)
+    }
+
     @Test func outdentTopLevelFails() throws {
         let a = try store.addTask(title: "A")
         #expect(try store.outdentTask(a.id) == false)
+    }
+
+    /// 缩进带子树的任务：子树经 parentID 链自动跟随
+    @Test func indentBringsSubtreeAlong() throws {
+        let a = try store.addTask(title: "A")
+        let b = try store.addTask(title: "B")
+        try store.addTask(title: "B1", parentID: b.id)
+        _ = try store.addTask(title: "C")
+        try store.indentTask(b.id)   // B（带 B1）→ A 下
+
+        let bAfter = try store.task(id: b.id)!
+        #expect(bAfter.parentID == a.id, "B 应挂到前一个兄弟 A 下")
+        let tree = try store.subtasksTree(includeCompleted: true)
+        #expect(titles(tree[a.id] ?? []) == ["B"])
+        #expect(titles(tree[b.id] ?? []) == ["B1"], "B 的子任务 B1 应保持挂接")
+        #expect(try store.inboxTasks(includeCompleted: true).map(\.title) == ["A", "C"])
+    }
+
+    // MARK: 递归删除与级联（多层）
+
+    private func makeFourLevelChain() throws -> (UUID, UUID, UUID, UUID) {
+        let a = try store.addTask(title: "A")
+        let b = try store.addTask(title: "B")
+        try store.indentTask(b.id)
+        let c = try store.addTask(title: "C", parentID: b.id)
+        let d = try store.addTask(title: "D", parentID: c.id)
+        return (a.id, b.id, c.id, d.id)
+    }
+
+    @Test func deepDeleteRemovesAllDescendants() throws {
+        let (a, b, c, d) = try makeFourLevelChain()
+
+        try store.deleteTask(b)
+        for id in [b, c, d] {
+            #expect(try store.task(id: id) == nil, "后代应递归删除")
+        }
+        #expect(try store.task(id: a) != nil, "祖先不受影响")
+    }
+
+    @Test func statusCascadesToGrandchildren() throws {
+        let (_, b, c, d) = try makeFourLevelChain()
+
+        try store.setTaskStatus(b, .completed)
+        for id in [b, c, d] {
+            #expect(try store.task(id: id)?.status == .completed, "完成父任务应级联到全部后代")
+        }
+
+        try store.setTaskStatus(b, .active)
+        for id in [b, c, d] {
+            #expect(try store.task(id: id)?.status == .active, "恢复父任务应整树同步恢复")
+        }
+    }
+
+    // MARK: subtasksTree
+
+    @Test func subtasksTreeGroupsAllLevels() throws {
+        let (_, _, _, _) = try makeFourLevelChain()
+        _ = try store.addTask(title: "独立任务")
+
+        let tree = try store.subtasksTree(includeCompleted: true)
+        #expect(titles(tree[try store.inboxTasks(includeCompleted: true).first!.id] ?? []) == ["B"],
+                "A 的直接子任务只有 B")
+
+        let bItem = try store.subtasks(of: try store.inboxTasks(includeCompleted: true).first!.id).first!
+        #expect(titles(tree[bItem.id] ?? []) == ["C"])
+
+        let cItem = try store.subtasks(of: bItem.id).first!
+        #expect(titles(tree[cItem.id] ?? []) == ["D"])
+
+        // 完成过滤
+        try store.setTaskStatus(cItem.id, .completed)
+        let activeTree = try store.subtasksTree(includeCompleted: false)
+        #expect(activeTree[bItem.id] == nil, "已完成的子树默认不显示")
+        let fullTree = try store.subtasksTree(includeCompleted: true)
+        #expect(titles(fullTree[bItem.id] ?? []) == ["C"])
     }
 
     // MARK: ⌥↑/⌥↓ 移动

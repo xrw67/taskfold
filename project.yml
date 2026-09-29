@@ -20,7 +20,6 @@ targets:
     platform: macOS
     sources:
       - Sources/MyFocus
-      - Resources/Assets.xcassets
     dependencies:
       - target: MyFocusKit
     info:

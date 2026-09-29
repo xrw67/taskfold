@@ -89,7 +89,8 @@ struct TaskRow: View {
     @Environment(AppState.self) private var app
     let task: TaskItem
     var showProjectName = false
-    var isSubtask = false
+    /// 大纲层级（顶层=0），子任务递归 +1，用于视觉缩进
+    var depth = 0
 
     @State private var editingText = ""
     @FocusState private var editing: Bool
@@ -137,7 +138,7 @@ struct TaskRow: View {
                 )
             ) {
                 ForEach(children) { child in
-                    TaskRow(task: child, showProjectName: showProjectName, isSubtask: true)
+                    TaskRow(task: child, showProjectName: showProjectName, depth: depth + 1)
                 }
             } label: {
                 plainRow
@@ -206,7 +207,7 @@ struct TaskRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.leading, isSubtask ? 8 : 0)
+        .padding(.leading, CGFloat(depth) * 14)
         .padding(.vertical, 1)
     }
 

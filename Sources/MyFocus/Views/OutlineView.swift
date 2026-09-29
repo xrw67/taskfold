@@ -58,9 +58,6 @@ struct OutlineView: View {
                     }
                 }
                 .onChange(of: app.selectedTaskID) { app.refreshSelected() }
-                .onKeyPress(phases: .down) { press in
-                    app.handleOutlineKey(press)
-                }
             }
         }
     }
@@ -81,9 +78,6 @@ struct OutlineView: View {
                     }
                 }
                 .onChange(of: app.selectedTaskID) { app.refreshSelected() }
-                .onKeyPress(phases: .down) { press in
-                    app.handleOutlineKey(press)
-                }
             }
         }
     }

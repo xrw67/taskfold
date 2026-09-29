@@ -25,7 +25,11 @@ struct MyFocusApp: App {
             .task {
                 guard appState == nil, bootError == nil else { return }
                 do {
-                    appState = try AppState(store: TaskStore.createDefault())
+                    let state = try AppState(store: TaskStore.createDefault())
+                    appState = state
+                    // 大纲快捷键（Tab/⇧Tab/回车/⌥↑↓/Space）由 NSEvent monitor 统一接管：
+                    // 无修饰键 Tab 的菜单 key equivalent 会被系统焦点循环吞掉
+                    KeyboardRouter.shared.install(state)
                 } catch {
                     bootError = "数据库位置：\(TaskStore.defaultDatabaseURL().path)\n\n\(error.localizedDescription)"
                 }
@@ -64,41 +68,43 @@ struct MyFocusApp: App {
                 ))
             }
             CommandMenu("任务") {
-                Button("完成 / 恢复") {
+                // 说明：Tab/⇧Tab/回车/Space/⌥Space 由 KeyboardRouter（NSEvent monitor）接管，
+                // 不再绑定菜单 key equivalent（无修饰键 Tab 会被系统焦点循环吞掉）；菜单项仅供鼠标点击
+                Button("完成 / 恢复（Space）") {
                     if let task = appState?.selectedTask {
                         appState?.toggleComplete(task)
                     }
                 }
-                .keyboardShortcut(.space, modifiers: [])
                 .disabled(appState?.selectedTask == nil)
 
-                Button("放弃 / 恢复") {
+                Button("放弃 / 恢复（⌥Space）") {
                     if let task = appState?.selectedTask {
                         appState?.setStatus(task, to: task.status == .active ? .dropped : .active)
                     }
                 }
-                .keyboardShortcut(.space, modifiers: .option)
                 .disabled(appState?.selectedTask == nil)
 
-                Button("缩进为子任务") {
+                Button("缩进为子任务（Tab）") {
                     appState?.indentSelected()
                 }
-                .keyboardShortcut(.tab, modifiers: [])
                 .disabled(appState?.selectedTask == nil)
 
-                Button("提升为顶层任务") {
+                Button("提升一级（⇧Tab）") {
                     appState?.outdentSelected()
                 }
-                .keyboardShortcut(.tab, modifiers: .shift)
                 .disabled(appState?.selectedTask == nil)
 
-                Button("在下方插入任务") {
+                Button("在下方插入任务（回车）") {
                     if let task = appState?.selectedTask {
                         appState?.insertAfter(task)
                     }
                 }
-                .keyboardShortcut(.return, modifiers: [])
                 .disabled(appState?.selectedTask == nil)
+
+                Button("上移（⌥↑）") { appState?.moveSelected(-1) }
+                    .disabled(appState?.selectedTask == nil)
+                Button("下移（⌥↓）") { appState?.moveSelected(1) }
+                    .disabled(appState?.selectedTask == nil)
 
                 Button("删除", role: .destructive) {
                     if let task = appState?.selectedTask {

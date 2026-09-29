@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import MyFocusKit
 
 /// 侧边栏当前区域
@@ -107,19 +108,12 @@ final class AppState {
             todaySections = sections
 
             var topByProject: [UUID: [TaskItem]] = [:]
-            var subs: [UUID: [TaskItem]] = [:]
             for project in projects {
-                let tops = try store.projectTasks(project.id, includeCompleted: showCompleted)
-                topByProject[project.id] = tops
-                for t in tops {
-                    subs[t.id] = try store.subtasks(of: t.id, includeCompleted: showCompleted)
-                }
-            }
-            for t in inboxTasks {
-                subs[t.id] = try store.subtasks(of: t.id, includeCompleted: showCompleted)
+                topByProject[project.id] = try store.projectTasks(project.id, includeCompleted: showCompleted)
             }
             projectTasks = topByProject
-            subtasks = subs
+            // 一次查询取全部分组（任意层级），TaskRow 递归渲染
+            subtasks = try store.subtasksTree(includeCompleted: showCompleted)
 
             inboxBadge = try store.inboxCount()
             todayBadge = try store.todayBadgeCounts(now: now, calendar: cal)
@@ -197,12 +191,17 @@ final class AppState {
 
     // MARK: 大纲编辑（TP-1）
 
+    /// Tab 缩进成功后自动展开新的父任务
     func indentSelected() {
         guard let task = selectedTask else { return }
         do {
             if try store.indentTask(task.id) {
-                expandedParents.insert(try store.task(id: task.id)!.parentID!)
+                if let moved = try store.task(id: task.id), let newParent = moved.parentID {
+                    expandedParents.insert(newParent)
+                }
                 reload()
+            } else {
+                NSSound.beep()
             }
         } catch {
             lastError = "缩进失败：\(error.localizedDescription)"
@@ -212,7 +211,11 @@ final class AppState {
     func outdentSelected() {
         guard let task = selectedTask else { return }
         do {
-            if try store.outdentTask(task.id) { reload() }
+            if try store.outdentTask(task.id) {
+                reload()
+            } else {
+                NSSound.beep()
+            }
         } catch {
             lastError = "提升失败：\(error.localizedDescription)"
         }
@@ -240,28 +243,48 @@ final class AppState {
         }
     }
 
-    /// 大纲键盘事件（挂在大纲 List 上）。编辑中不拦截。
-    func handleOutlineKey(_ press: KeyPress) -> KeyPress.Result {
-        guard editingTaskID == nil, let task = selectedTask else { return .ignored }
+    // MARK: 键盘路由（KeyboardRouter 调用）
 
-        switch press.key {
-        case .tab where press.modifiers.contains(.shift):
-            outdentSelected()
-            return .handled
-        case .tab:
-            indentSelected()
-            return .handled
-        case .return:
-            insertAfter(task)
-            return .handled
-        case .downArrow where press.modifiers.contains(.option):
+    /// 应用级 keyDown 拦截：命中大纲快捷键返回 true（吞掉事件）。
+    /// 文本编辑上下文（行内编辑/搜索框/检查器文本框）一律放行。
+    func swallowKeyEvent(_ event: NSEvent) -> Bool {
+        guard editingTaskID == nil,
+              selectedTask != nil,
+              event.window === NSApp.keyWindow,
+              !(NSApp.keyWindow?.firstResponder is NSTextView)
+        else { return false }
+
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let hasShift = mods.contains(.shift)
+        let hasOption = mods.contains(.option)
+        let hasCommand = mods.contains(.command)
+        let hasControl = mods.contains(.control)
+
+        // macOS keyCode：48=Tab 36=Return 49=Space 125=↓ 126=↑
+        switch event.keyCode {
+        case 48 where !hasCommand && !hasControl && !hasOption:
+            if hasShift { outdentSelected() } else { indentSelected() }
+            return true
+        case 36 where !hasShift && !hasOption && !hasCommand && !hasControl:
+            insertAfter(selectedTask!)
+            return true
+        case 125 where hasOption && !hasShift && !hasCommand && !hasControl:
             moveSelected(1)
-            return .handled
-        case .upArrow where press.modifiers.contains(.option):
+            return true
+        case 126 where hasOption && !hasShift && !hasCommand && !hasControl:
             moveSelected(-1)
-            return .handled
+            return true
+        case 49 where !hasCommand && !hasControl:
+            if hasOption {
+                setStatus(selectedTask!, to: selectedTask!.status == .active ? .dropped : .active)
+            } else if !hasShift {
+                toggleComplete(selectedTask!)
+            } else {
+                return false
+            }
+            return true
         default:
-            return .ignored
+            return false
         }
     }
 
