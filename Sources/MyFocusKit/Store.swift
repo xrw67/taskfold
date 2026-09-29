@@ -154,11 +154,171 @@ public final class TaskStore: Sendable {
         try db.write { try t.update($0) }
     }
 
-    /// 改所属项目：指定项目后立即移出收件箱（INB-2）
+    // MARK: 大纲编辑（TP-1：Tab 缩进 / ⇧Tab 提升 / ⌥↑↓ 移动 / 回车续行）
+
+    /// 同容器的兄弟任务（含已完成），按 sortIndex 排序
+    private func siblings(_ db: Database, of task: TaskItem) throws -> [TaskItem] {
+        var request = TaskItem.order(Column("sortIndex"), Column("createdAt"))
+        switch (task.parentID, task.projectID) {
+        case (let parent?, _):
+            request = request.filter(Column("parentID") == parent)
+        case (nil, let project?):
+            request = request.filter(Column("projectID") == project && Column("parentID") == nil)
+        case (nil, nil):
+            request = request.filter(Column("projectID") == nil && Column("parentID") == nil)
+        }
+        return try request.fetchAll(db)
+    }
+
+    /// Tab：把任务缩进为「前一个兄弟」的子任务。V1 子任务只有一层，已是子任务则忽略。
+    @discardableResult
+    public func indentTask(_ taskID: UUID) throws -> Bool {
+        try db.write { db in
+            guard let task = try TaskItem.filter(id: taskID).fetchOne(db),
+                  task.parentID == nil
+            else { return false }
+
+            let list = try siblings(db, of: task)
+            guard let index = list.firstIndex(where: { $0.id == taskID }), index > 0 else {
+                return false
+            }
+
+            let newParent = list[index - 1]
+            let childMax: Int? = try Int.fetchOne(
+                db,
+                TaskItem.filter(Column("parentID") == newParent.id).select(max(Column("sortIndex")))
+            )
+            try TaskItem.filter(id: taskID).updateAll(
+                db,
+                Column("parentID").set(to: newParent.id),
+                Column("sortIndex").set(to: (childMax ?? -1) + 1),
+                Column("updatedAt").set(to: Date())
+            )
+            return true
+        }
+    }
+
+    /// ⇧Tab：把子任务提升为顶层任务（V1 只有一层嵌套）
+    @discardableResult
+    public func outdentTask(_ taskID: UUID) throws -> Bool {
+        try db.write { db in
+            guard let task = try TaskItem.filter(id: taskID).fetchOne(db),
+                  let parentID = task.parentID,
+                  let parent = try TaskItem.filter(id: parentID).fetchOne(db)
+            else { return false }
+
+            // 同容器（父的容器）中排在父任务之后的兄弟整体后移一位
+            try shiftSiblings(db, after: parent, by: 1)
+            try TaskItem.filter(id: taskID).updateAll(
+                db,
+                Column("parentID").set(to: nil),
+                Column("sortIndex").set(to: parent.sortIndex + 1),
+                Column("updatedAt").set(to: Date())
+            )
+            return true
+        }
+    }
+
+    /// ⌥↑ / ⌥↓：在同级内与上/下一个兄弟交换位置
+    @discardableResult
+    public func moveTask(_ taskID: UUID, offset: Int) throws -> Bool {
+        try db.write { db in
+            guard var task = try TaskItem.filter(id: taskID).fetchOne(db) else { return false }
+
+            // sortIndex 出现重复（脏数据）时先按当前顺序归一化，避免交换后乱序
+            var list = try siblings(db, of: task)
+            let hasDuplicate = zip(list, list.dropFirst()).contains { $0.0.sortIndex >= $0.1.sortIndex }
+            if hasDuplicate {
+                let now = Date()
+                for (i, s) in list.enumerated() {
+                    try TaskItem.filter(id: s.id).updateAll(
+                        db, Column("sortIndex").set(to: i), Column("updatedAt").set(to: now))
+                }
+                task = try TaskItem.filter(id: taskID).fetchOne(db)!
+                list = try siblings(db, of: task)
+            }
+
+            guard let index = list.firstIndex(where: { $0.id == taskID }) else { return false }
+            let target = index + offset
+            guard list.indices.contains(target) else { return false }
+            let other = list[target]
+
+            try TaskItem.filter(id: taskID).updateAll(
+                db, Column("sortIndex").set(to: other.sortIndex), Column("updatedAt").set(to: Date()))
+            try TaskItem.filter(id: other.id).updateAll(
+                db, Column("sortIndex").set(to: task.sortIndex), Column("updatedAt").set(to: Date()))
+            return true
+        }
+    }
+
+    /// 回车续行：在选中任务之后插入同级新任务
+    @discardableResult
+    public func insertTask(after taskID: UUID, title: String) throws -> TaskItem? {
+        try db.write { db in
+            guard let task = try TaskItem.filter(id: taskID).fetchOne(db) else { return nil }
+            try shiftSiblings(db, after: task, by: 1)
+
+            var new = TaskItem(title: title, projectID: task.projectID, parentID: task.parentID)
+            new.sortIndex = task.sortIndex + 1
+            try new.insert(db)
+            return new
+        }
+    }
+
+    /// 把同容器中 sortIndex 大于 anchor 的顶层/子任务整体平移（保持插入空间）
+    private func shiftSiblings(_ db: Database, after anchor: TaskItem, by delta: Int) throws {
+        var request = TaskItem.filter(Column("sortIndex") > anchor.sortIndex)
+        switch (anchor.parentID, anchor.projectID) {
+        case (let parent?, _):
+            request = request.filter(Column("parentID") == parent)
+        case (nil, let project?):
+            request = request.filter(Column("projectID") == project && Column("parentID") == nil)
+        case (nil, nil):
+            request = request.filter(Column("projectID") == nil && Column("parentID") == nil)
+        }
+        try request.updateAll(
+            db,
+            Column("sortIndex").set(to: Column("sortIndex") + delta),
+            Column("updatedAt").set(to: Date())
+        )
+    }
+
+    // MARK: 首启示例数据（需求 7.3）
+
+    /// 库为空时写入示例项目与任务，让新用户立即看到完整工作流。返回是否写入了。
+    @discardableResult
+    public func seedSampleDataIfEmpty(now: Date = Date(), calendar: Calendar = .current) throws -> Bool {
+        let hasData = try db.read { db in
+            try TaskItem.fetchCount(db) > 0 || ProjectItem.fetchCount(db) > 0
+        }
+        guard !hasData else { return false }
+
+        let project = try addProject(name: "示例：网站改版")
+        try addTask(title: "梳理需求（点左边的圆圈完成它）", projectID: project.id)
+        let design = try addTask(title: "画首页原型", projectID: project.id)
+        try addTask(title: "线框图", projectID: project.id, parentID: design.id)
+        try addTask(title: "高保真设计稿", projectID: project.id, parentID: design.id)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
+        try addTask(title: "修复导航栏样式（已逾期演示）", projectID: project.id,
+                    dueDate: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: yesterday))
+        try addTask(title: "联调 API", projectID: project.id,
+                    dueDate: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now))
+
+        try addTask(title: "试试拖到左侧「示例：网站改版」里")
+        try addTask(title: "试试双击改标题，Tab 缩进成子任务",
+                    dueDate: calendar.date(bySettingHour: 17, minute: 0, second: 0,
+                                           of: calendar.date(byAdding: .day, value: 1, to: now)!))
+        return true
+    }
+
+    /// 改所属项目：指定项目后立即移出收件箱（INB-2）；子任务随顶层任务一起移动（INB-3 拖拽）
     public func setTaskProject(_ taskID: UUID, projectID: UUID?) throws {
         _ = try db.write { db in
+            let now = Date()
             try TaskItem.filter(id: taskID)
-                .updateAll(db, Column("projectID").set(to: projectID), Column("updatedAt").set(to: Date()))
+                .updateAll(db, Column("projectID").set(to: projectID), Column("updatedAt").set(to: now))
+            try TaskItem.filter(Column("parentID") == taskID)
+                .updateAll(db, Column("projectID").set(to: projectID), Column("updatedAt").set(to: now))
         }
     }
 

@@ -55,10 +55,7 @@ struct InspectorView: View {
                     get: { task.dueDate != nil },
                     set: { hasDue in
                         if hasDue {
-                            let cal = Calendar.current
-                            let defaultDue = cal.date(bySettingHour: 17, minute: 0, second: 0, of: Date())
-                                ?? Date().addingTimeInterval(24 * 3600)
-                            app.setDue(task, to: task.dueDate ?? defaultDue)
+                            app.setDue(task, to: task.dueDate ?? app.defaultDue(on: Date()))
                         } else {
                             app.setDue(task, to: nil)
                         }
@@ -74,10 +71,25 @@ struct InspectorView: View {
                         ),
                         displayedComponents: [.date, .hourAndMinute]
                     )
-                    Button("清除截止", role: .destructive) {
-                        app.setDue(task, to: nil)
+                }
+
+                // DT-1 日期快捷按钮
+                HStack {
+                    Button("今天") { app.setDue(task, to: app.defaultDue(on: Date())) }
+                    Button("明天") {
+                        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
+                        app.setDue(task, to: app.defaultDue(on: tomorrow))
+                    }
+                    Button("+1周") {
+                        let nextWeek = Calendar.current.date(byAdding: .day, value: 7, to: Date())!
+                        app.setDue(task, to: app.defaultDue(on: nextWeek))
+                    }
+                    if task.dueDate != nil {
+                        Button("清除", role: .destructive) { app.setDue(task, to: nil) }
                     }
                 }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
             }
 
             Section("备注") {

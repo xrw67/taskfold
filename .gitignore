@@ -1,2 +1,16 @@
-.build/**
-.vscode/**
+# 构建产物
+.build/
+DerivedData/
+
+# Xcode 用户数据与结果
+xcuserdata/
+*.xcuserstate
+*.xcresult
+
+# xcodegen 派生的 plist（由 project.yml 生成）
+Sources/MyFocus/Info.plist
+Sources/MyFocusKit/Info.plist
+
+# macOS
+.DS_Store
+.vscode/

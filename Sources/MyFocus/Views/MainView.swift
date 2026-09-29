@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainView: View {
     @Environment(AppState.self) private var app
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         @Bindable var app = app
@@ -21,7 +22,17 @@ struct MainView: View {
                 TextField("搜索", text: $app.searchText)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 220)
+                    .focused($searchFocused)
                     .onChange(of: app.searchText) { app.reload() }
+                    .onChange(of: app.searchFocusRequest) { _, _ in
+                        searchFocused = true
+                    }
+                    .onKeyPress(.escape) {
+                        app.searchText = ""
+                        app.reload()
+                        searchFocused = false
+                        return .handled
+                    }
                 Button {
                     app.showInspector.toggle()
                 } label: {

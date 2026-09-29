@@ -101,6 +101,7 @@ struct TaskRow: View {
     var body: some View {
         rowContent
             .tag(task.id)
+            .draggable(task.id.uuidString)
             .contextMenu {
                 if task.status == .active {
                     Button("完成") { app.setStatus(task, to: .completed) }
@@ -156,7 +157,12 @@ struct TaskRow: View {
                 TextField("标题", text: $editingText)
                     .textFieldStyle(.roundedBorder)
                     .focused($editing)
-                    .onSubmit { app.commitTitle(task, to: editingText) }
+                    .onSubmit { app.commitTitle(task, to: editingText, continueWithNew: true) }
+                    .onKeyPress(.escape) {
+                        editingText = task.title
+                        app.editingTaskID = nil
+                        return .handled
+                    }
                     .onChange(of: editing) { _, focused in
                         if !focused, isEditing {
                             app.commitTitle(task, to: editingText)
@@ -168,10 +174,17 @@ struct TaskRow: View {
                         }
                     }
             } else {
-                Text(task.title)
-                    .strikethrough(task.status != .active)
-                    .foregroundStyle(task.status == .active ? .primary : .secondary)
-                    .lineLimit(2)
+                if app.isSearching, let query = app.searchText.trimmingCharacters(in: .whitespaces) as String?,
+                   !query.isEmpty {
+                    Text(highlightedTitle(task.title, query: query))
+                        .strikethrough(task.status != .active)
+                        .lineLimit(2)
+                } else {
+                    Text(task.title)
+                        .strikethrough(task.status != .active)
+                        .foregroundStyle(task.status == .active ? .primary : .secondary)
+                        .lineLimit(2)
+                }
 
                 if showProjectName, let projectID = task.projectID,
                    let project = app.projects.first(where: { $0.id == projectID }) {
@@ -195,5 +208,19 @@ struct TaskRow: View {
         }
         .padding(.leading, isSubtask ? 8 : 0)
         .padding(.vertical, 1)
+    }
+
+    /// 搜索命中段高亮（KB-2）
+    private func highlightedTitle(_ title: String, query: String) -> AttributedString {
+        var attr = AttributedString(title)
+        var searchRange = title.startIndex..<title.endIndex
+        while let range = title.range(of: query, options: .caseInsensitive, range: searchRange) {
+            if let attrRange = Range(NSRange(range, in: title), in: attr) {
+                attr[attrRange].backgroundColor = Color.yellow.opacity(0.35)
+                attr[attrRange].foregroundColor = .primary
+            }
+            searchRange = range.upperBound..<title.endIndex
+        }
+        return attr
     }
 }

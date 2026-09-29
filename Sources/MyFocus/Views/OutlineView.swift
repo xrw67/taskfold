@@ -43,15 +43,24 @@ struct OutlineView: View {
                 List(selection: $app.selectedTaskID) {
                     ForEach([(TodaySection.overdue, overdue), (.today, today), (.next7Days, next7)], id: \.0) { section, tasks in
                         if !tasks.isEmpty {
-                            Section(section.rawValue) {
+                            Section {
                                 ForEach(tasks) { task in
                                     TaskRow(task: task, showProjectName: true)
                                 }
+                            } header: {
+                                TodaySectionHeader(
+                                    title: section.rawValue,
+                                    count: tasks.count,
+                                    urgent: section == .overdue
+                                )
                             }
                         }
                     }
                 }
                 .onChange(of: app.selectedTaskID) { app.refreshSelected() }
+                .onKeyPress(phases: .down) { press in
+                    app.handleOutlineKey(press)
+                }
             }
         }
     }
@@ -72,7 +81,30 @@ struct OutlineView: View {
                     }
                 }
                 .onChange(of: app.selectedTaskID) { app.refreshSelected() }
+                .onKeyPress(phases: .down) { press in
+                    app.handleOutlineKey(press)
+                }
             }
+        }
+    }
+}
+
+// MARK: - 今天视图分区标题
+
+struct TodaySectionHeader: View {
+    let title: String
+    let count: Int
+    var urgent = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(urgent ? Color.red : Color.primary)
+            Text("\(count)")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(urgent ? Color.red : Color.secondary)
         }
     }
 }

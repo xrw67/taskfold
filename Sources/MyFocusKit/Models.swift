@@ -90,10 +90,10 @@ public struct TaskItem: Identifiable, Codable, Sendable, Equatable {
         return due < now
     }
 
-    /// 是否"即将到期"：截止时间落在今天剩余时间内（从现在到当天结束）
+    /// 是否"即将到期"：截止时间落在参考时间当天（颜色语义=今天/黄橙）
     public func isDueToday(now: Date = Date(), calendar: Calendar = .current) -> Bool {
         guard let due = dueDate else { return false }
-        return calendar.isDateInToday(due)
+        return calendar.isDate(due, inSameDayAs: now)
     }
 }
 
@@ -109,12 +109,14 @@ public enum TodaySection: String, CaseIterable, Sendable {
             return task.isOverdue(now: now)
         case .today:
             guard let due = task.dueDate, task.status == .active else { return false }
-            return due >= now && calendar.isDateInToday(due)
+            return due >= now && calendar.isDate(due, inSameDayAs: now)
         case .next7Days:
             guard let due = task.dueDate, task.status == .active else { return false }
             guard let endOf7Days = calendar.date(byAdding: .day, value: 7, to: calendar.startOfDay(for: now))
             else { return false }
-            return due > now && !calendar.isDateInToday(due) && due < endOf7Days
+            return due > now
+                && !calendar.isDate(due, inSameDayAs: now)
+                && due < endOf7Days
         }
     }
 }

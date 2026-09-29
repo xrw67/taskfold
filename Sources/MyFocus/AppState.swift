@@ -30,6 +30,8 @@ final class AppState {
     var showCompleted = false
     var searchText = ""
     var lastError: String?
+    /// ⌘F 请求聚焦搜索框：MainView 监听该值变化（菜单命令无法直接持有 FocusState）
+    var searchFocusRequest = 0
 
     // MARK: 展示数据（每次变更后整体刷新）
 
@@ -46,7 +48,24 @@ final class AppState {
 
     init(store: TaskStore) {
         self.store = store
+        do {
+            try store.seedSampleDataIfEmpty()
+        } catch {
+            lastError = "示例数据创建失败：\(error.localizedDescription)"
+        }
         reload()
+    }
+
+    /// 默认截止时刻（设置可改，DS-1/DT-1）
+    static let defaultDueHourKey = "defaultDueHour"
+    static let defaultDueMinuteKey = "defaultDueMinute"
+
+    func defaultDue(on date: Date, calendar: Calendar = .current) -> Date {
+        let defaults = UserDefaults.standard
+        let hour = defaults.object(forKey: Self.defaultDueHourKey) as? Int ?? 17
+        let minute = defaults.object(forKey: Self.defaultDueMinuteKey) as? Int ?? 0
+        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)
+            ?? date
     }
 
     var currentProject: ProjectItem? {
@@ -124,14 +143,13 @@ final class AppState {
 
     // MARK: 任务操作
 
-    /// 在当前区域新建任务：项目页建到项目、今天页默认今天 17:00 截止、收件箱页进收件箱
+    /// 在当前区域新建任务：项目页建到项目、今天页默认今天默认时刻截止、收件箱页进收件箱
     @discardableResult
     func newTask() -> UUID? {
         do {
             let due: Date? = {
                 guard case .today = section else { return nil }
-                let cal = Calendar.current
-                return cal.date(bySettingHour: 17, minute: 0, second: 0, of: Date())
+                return defaultDue(on: Date())
             }()
             let projectID = currentProject?.id
             let task = try store.addTask(title: "新任务", projectID: projectID, dueDate: due)
@@ -157,17 +175,94 @@ final class AppState {
         }
     }
 
-    /// 行内改名；提交空标题时删除该任务
-    func commitTitle(_ task: TaskItem, to newTitle: String) {
+    /// 行内改名；提交空标题时删除该任务；continueWithNew 时在其后新建并继续编辑（回车续行）
+    func commitTitle(_ task: TaskItem, to newTitle: String, continueWithNew: Bool = false) {
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             delete(task)
-        } else if trimmed != task.title {
+            editingTaskID = nil
+            return
+        }
+        if trimmed != task.title {
             var t = task
             t.title = trimmed
             update(t)
         }
-        editingTaskID = nil
+        if continueWithNew {
+            insertAfter(task)
+        } else {
+            editingTaskID = nil
+        }
+    }
+
+    // MARK: 大纲编辑（TP-1）
+
+    func indentSelected() {
+        guard let task = selectedTask else { return }
+        do {
+            if try store.indentTask(task.id) {
+                expandedParents.insert(try store.task(id: task.id)!.parentID!)
+                reload()
+            }
+        } catch {
+            lastError = "缩进失败：\(error.localizedDescription)"
+        }
+    }
+
+    func outdentSelected() {
+        guard let task = selectedTask else { return }
+        do {
+            if try store.outdentTask(task.id) { reload() }
+        } catch {
+            lastError = "提升失败：\(error.localizedDescription)"
+        }
+    }
+
+    func moveSelected(_ offset: Int) {
+        guard let task = selectedTask else { return }
+        do {
+            if try store.moveTask(task.id, offset: offset) { reload() }
+        } catch {
+            lastError = "移动失败：\(error.localizedDescription)"
+        }
+    }
+
+    /// 在选中任务之后插入同级新任务并进入编辑（回车续行）
+    func insertAfter(_ task: TaskItem) {
+        do {
+            if let new = try store.insertTask(after: task.id, title: "新任务") {
+                reload()
+                selectedTaskID = new.id
+                editingTaskID = new.id
+            }
+        } catch {
+            lastError = "新建任务失败：\(error.localizedDescription)"
+        }
+    }
+
+    /// 大纲键盘事件（挂在大纲 List 上）。编辑中不拦截。
+    func handleOutlineKey(_ press: KeyPress) -> KeyPress.Result {
+        guard editingTaskID == nil, let task = selectedTask else { return .ignored }
+
+        switch press.key {
+        case .tab where press.modifiers.contains(.shift):
+            outdentSelected()
+            return .handled
+        case .tab:
+            indentSelected()
+            return .handled
+        case .return:
+            insertAfter(task)
+            return .handled
+        case .downArrow where press.modifiers.contains(.option):
+            moveSelected(1)
+            return .handled
+        case .upArrow where press.modifiers.contains(.option):
+            moveSelected(-1)
+            return .handled
+        default:
+            return .ignored
+        }
     }
 
     func toggleComplete(_ task: TaskItem) {

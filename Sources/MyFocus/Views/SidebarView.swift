@@ -26,42 +26,36 @@ struct SidebarView: View {
     @State private var renamingProject: ProjectItem?
     @State private var renameText = ""
     @State private var deletingProject: ProjectItem?
+    /// 拖放高亮：收件箱与各项目行（INB-3）
+    @State private var dropTargetIDs: Set<FocusSection> = []
+
+    private var inboxDropHovered: Bool {
+        dropTargetIDs.contains(.inbox)
+    }
+
+    /// 拖拽任务 id 到侧边栏 = 分配项目（INB-3）
+    private func dropTasks(_ items: [String], to projectID: UUID?) -> Bool {
+        guard let idString = items.first,
+              let taskID = UUID(uuidString: idString),
+              let task = try? app.store.task(id: taskID)
+        else { return false }
+        app.assign(task, to: projectID)
+        return true
+    }
 
     var body: some View {
         @Bindable var app = app
-        List(selection: Binding(
-            get: { app.section },
-            set: { if let s = $0 { app.section = s } }
-        )) {
+        List(selection: sectionBinding) {
             Section {
-                HStack {
-                    Label("收件箱", systemImage: "tray")
-                    Spacer()
-                    CountBadge(count: app.inboxBadge)
-                }
-                .tag(FocusSection.inbox)
-
-                HStack {
-                    Label("今天", systemImage: "sun.max")
-                    Spacer()
-                    CountBadge(count: app.todayBadge.overdue, urgent: true)
-                    CountBadge(count: app.todayBadge.today + app.todayBadge.next7Days)
-                }
-                .tag(FocusSection.today)
+                inboxRow
+                todayRow
             }
 
             Section("项目") {
                 ForEach(app.projects) { project in
                     sidebarRow(project)
                 }
-                Button {
-                    newProjectName = ""
-                    newProjectShown = true
-                } label: {
-                    Label("新建项目", systemImage: "plus")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                newProjectButton
             }
         }
         .listStyle(.sidebar)
@@ -106,8 +100,64 @@ struct SidebarView: View {
         }
     }
 
+    private var sectionBinding: Binding<FocusSection?> {
+        Binding(
+            get: { app.section },
+            set: { if let s = $0 { app.section = s } }
+        )
+    }
+
+    /// 收件箱行（也是拖放目标：拖到这里 = 移回收件箱）
+    private var inboxRow: some View {
+        HStack {
+            Label("收件箱", systemImage: "tray")
+            Spacer()
+            CountBadge(count: app.inboxBadge)
+        }
+        .tag(FocusSection.inbox)
+        .dropDestination(for: String.self) { items, _ in
+            dropTasks(items, to: nil)
+        } isTargeted: { hovering in
+            setHover(.inbox, hovering)
+        }
+        .background(
+            dropTargetIDs.contains(.inbox) ? Color.accentColor.opacity(0.15) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 6)
+        )
+    }
+
+    private var todayRow: some View {
+        HStack {
+            Label("今天", systemImage: "sun.max")
+            Spacer()
+            CountBadge(count: app.todayBadge.overdue, urgent: true)
+            CountBadge(count: app.todayBadge.today + app.todayBadge.next7Days)
+        }
+        .tag(FocusSection.today)
+    }
+
+    private var newProjectButton: some View {
+        Button {
+            newProjectName = ""
+            newProjectShown = true
+        } label: {
+            Label("新建项目", systemImage: "plus")
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+    }
+
+    private func setHover(_ section: FocusSection, _ hovering: Bool) {
+        if hovering {
+            dropTargetIDs.insert(section)
+        } else {
+            dropTargetIDs.remove(section)
+        }
+    }
+
     @ViewBuilder
     private func sidebarRow(_ project: ProjectItem) -> some View {
+        let section = FocusSection.project(project.id)
         HStack {
             Label(project.name, systemImage: project.status == .active ? "folder" : "folder.badge.minus")
                 .foregroundStyle(project.status == .active ? .primary : .secondary)
@@ -115,7 +165,14 @@ struct SidebarView: View {
             CountBadge(count: app.projectBadges[project.id]?.overdue ?? 0, urgent: true)
             CountBadge(count: app.projectBadges[project.id]?.remaining ?? 0)
         }
-        .tag(FocusSection.project(project.id))
+        .tag(section)
+        .dropDestination(for: String.self) { items, _ in
+            dropTasks(items, to: project.id)
+        } isTargeted: { hovering in
+            if hovering { dropTargetIDs.insert(section) } else { dropTargetIDs.remove(section) }
+        }
+        .background(dropTargetIDs.contains(section) ? Color.accentColor.opacity(0.15) : .clear,
+                    in: RoundedRectangle(cornerRadius: 6))
         .contextMenu {
             Button("重命名…") {
                 renameText = project.name

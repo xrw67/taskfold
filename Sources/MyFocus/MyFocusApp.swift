@@ -69,6 +69,35 @@ struct MyFocusApp: App {
                         appState?.toggleComplete(task)
                     }
                 }
+                .keyboardShortcut(.space, modifiers: [])
+                .disabled(appState?.selectedTask == nil)
+
+                Button("放弃 / 恢复") {
+                    if let task = appState?.selectedTask {
+                        appState?.setStatus(task, to: task.status == .active ? .dropped : .active)
+                    }
+                }
+                .keyboardShortcut(.space, modifiers: .option)
+                .disabled(appState?.selectedTask == nil)
+
+                Button("缩进为子任务") {
+                    appState?.indentSelected()
+                }
+                .keyboardShortcut(.tab, modifiers: [])
+                .disabled(appState?.selectedTask == nil)
+
+                Button("提升为顶层任务") {
+                    appState?.outdentSelected()
+                }
+                .keyboardShortcut(.tab, modifiers: .shift)
+                .disabled(appState?.selectedTask == nil)
+
+                Button("在下方插入任务") {
+                    if let task = appState?.selectedTask {
+                        appState?.insertAfter(task)
+                    }
+                }
+                .keyboardShortcut(.return, modifiers: [])
                 .disabled(appState?.selectedTask == nil)
 
                 Button("删除", role: .destructive) {
@@ -78,6 +107,22 @@ struct MyFocusApp: App {
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
                 .disabled(appState?.selectedTask == nil)
+            }
+
+            CommandMenu("帮助") {
+                Button("聚焦搜索") { appState?.searchFocusRequest += 1 }
+                    .keyboardShortcut("f", modifiers: .command)
+            }
+        }
+
+        settingsScene
+    }
+
+    private var settingsScene: some Scene {
+        Settings {
+            if let appState {
+                SettingsView()
+                    .environment(appState)
             }
         }
     }

@@ -1,0 +1,100 @@
+name: MyFocus
+options:
+  bundleIdPrefix: com.xrw
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: false
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: 7.11.1
+targets:
+  MyFocus:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/MyFocus
+      - Resources/Assets.xcassets
+    dependencies:
+      - target: MyFocusKit
+    info:
+      path: Sources/MyFocus/Info.plist
+      properties:
+        CFBundleDisplayName: MyFocus
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleIconName: AppIcon
+        LSMinimumSystemVersion: "14.0"
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHighResolutionCapable: true
+        NSSupportsAutomaticGraphicsSwitching: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.MyFocus
+        PRODUCT_NAME: MyFocus
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # 本地分发：Ad-hoc 签名即可运行，无需开发者账号
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        COMBINE_HIDPI_IMAGES: true
+  MyFocusKit:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/MyFocusKit
+    dependencies:
+      - package: GRDB
+    info:
+      path: Sources/MyFocusKit/Info.plist
+      properties: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.MyFocusKit
+        DEFINES_MODULE: true
+  Bench:
+    type: tool
+    platform: macOS
+    sources:
+      - Sources/Bench
+    dependencies:
+      - target: MyFocusKit
+      - package: GRDB
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.Bench
+  MyFocusKitTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/MyFocusKitTests
+    dependencies:
+      - target: MyFocusKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.MyFocusKitTests
+        GENERATE_INFOPLIST_FILE: true
+schemes:
+  MyFocus:
+    build:
+      targets:
+        MyFocus: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - MyFocusKitTests
+    archive:
+      config: Release
+  Bench:
+    build:
+      targets:
+        Bench: all
+    run:
+      config: Release

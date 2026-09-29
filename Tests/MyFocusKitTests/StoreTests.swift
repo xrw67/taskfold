@@ -55,6 +55,19 @@ struct StoreTests {
         #expect(try store.projectTasks(project.id).count == 1)
     }
 
+    @Test func assignProjectMovesSubtasksAlong() throws {
+        let project = try store.addProject(name: "网站改版")
+        _ = try store.addTask(title: "A")
+        let parent = try store.addTask(title: "B")
+        let child = try store.addTask(title: "C")
+        try store.indentTask(child.id)   // C 成为 B 的子任务
+
+        try store.setTaskProject(parent.id, projectID: project.id)
+        let movedChild = try store.task(id: child.id)!
+        #expect(movedChild.projectID == project.id, "拖拽整组换项目时子任务应跟随")
+        #expect(movedChild.parentID == parent.id, "父子关系保持不变")
+    }
+
     // MARK: 项目级联（DS-4 / TP-4）
 
     @Test func completeProjectCascadesToTasks() throws {
