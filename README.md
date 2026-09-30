@@ -67,7 +67,7 @@ make xapp                # 启动 xcodebuild 产物 .app
 - App 目标当前为 **Ad-hoc 签名**（本地运行无需开发者账号）；上架或 Developer ID 分发时在 `project.yml` 中调整签名配置。
 - `make run` 与 `.app` 共用同一个数据库（`~/Library/Application Support/MyFocus/MyFocus.sqlite`）。
 
-数据存储在 `~/Library/Application Support/MyFocus/MyFocus.sqlite`（WAL 模式）。
+数据存储在 `~/.config/MyFocus/MyFocus.sqlite`（WAL 模式），自动备份在同目录 `Backups/`。旧版 `~/Library/Application Support/MyFocus/` 的数据会在启动时自动迁移（一次性，迁移后旧目录清理）。
 
 ## M0 决策记录：为什么选 GRDB 而不是 SwiftData
 

@@ -33,6 +33,18 @@ struct MainView: View {
                         searchFocused = false
                         return .handled
                     }
+                Toggle(isOn: Binding(
+                    get: { app.showCompleted },
+                    set: {
+                        app.showCompleted = $0
+                        app.reload()
+                    }
+                )) {
+                    Label("显示已完成", systemImage: app.showCompleted ? "eye" : "eye.slash")
+                }
+                .toggleStyle(.button)
+                .help("显示已完成任务")
+
                 Button {
                     app.showInspector.toggle()
                 } label: {

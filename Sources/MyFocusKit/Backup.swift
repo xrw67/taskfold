@@ -24,8 +24,7 @@ public final class BackupManager: Sendable {
     public static let defaultKeepCount = 20
 
     public static var defaultDirectory: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appendingPathComponent("MyFocus/Backups", isDirectory: true)
+        TaskStore.defaultDataDirectory.appendingPathComponent("Backups", isDirectory: true)
     }
 
     private let directory: URL

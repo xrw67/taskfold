@@ -57,16 +57,58 @@ public final class TaskStore: Sendable {
         try source.backup(to: db)
     }
 
-    /// 默认数据库路径：~/Library/Application Support/MyFocus/MyFocus.sqlite
-    public static func defaultDatabaseURL() -> URL {
+    // MARK: 数据目录
+
+    /// 数据目录：~/.config/MyFocus
+    public static var defaultDataDirectory: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".config/MyFocus", isDirectory: true)
+    }
+
+    /// 旧版数据目录（~/Library/Application Support/MyFocus），仅供一次性迁移
+    public static var legacyDataDirectory: URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appendingPathComponent("MyFocus", isDirectory: true).appendingPathComponent("MyFocus.sqlite")
+        return support.appendingPathComponent("MyFocus", isDirectory: true)
+    }
+
+    public static func defaultDatabaseURL() -> URL {
+        defaultDataDirectory.appendingPathComponent("MyFocus.sqlite")
     }
 
     public static func createDefault() throws -> TaskStore {
+        // 打开数据库前先做旧目录迁移（无文件占用）
+        try migrateLegacyData(from: legacyDataDirectory, to: defaultDataDirectory)
         let url = defaultDatabaseURL()
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         return try TaskStore(path: url.path)
+    }
+
+    /// 一次性迁移：新库不存在且旧目录有库时，把库文件（含 WAL/SHM）与备份目录整体移到新目录。
+    /// 幂等：已迁移或全新安装返回 false。旧目录移空后删除；残留未知文件则保留（避免误删）。
+    @discardableResult
+    public static func migrateLegacyData(from legacyDir: URL, to newDir: URL) throws -> Bool {
+        let fm = FileManager.default
+        let legacyDB = legacyDir.appendingPathComponent("MyFocus.sqlite")
+        let newDB = newDir.appendingPathComponent("MyFocus.sqlite")
+        guard !fm.fileExists(atPath: newDB.path), fm.fileExists(atPath: legacyDB.path) else {
+            return false
+        }
+
+        try fm.createDirectory(at: newDir, withIntermediateDirectories: true)
+        for name in ["MyFocus.sqlite", "MyFocus.sqlite-wal", "MyFocus.sqlite-shm"] {
+            let source = legacyDir.appendingPathComponent(name)
+            if fm.fileExists(atPath: source.path) {
+                try fm.moveItem(at: source, to: newDir.appendingPathComponent(name))
+            }
+        }
+        let legacyBackups = legacyDir.appendingPathComponent("Backups")
+        if fm.fileExists(atPath: legacyBackups.path) {
+            try fm.moveItem(at: legacyBackups, to: newDir.appendingPathComponent("Backups"))
+        }
+        if let leftovers = try? fm.contentsOfDirectory(atPath: legacyDir.path), leftovers.isEmpty {
+            try? fm.removeItem(at: legacyDir)
+        }
+        return true
     }
 
     private static var migrator: DatabaseMigrator {

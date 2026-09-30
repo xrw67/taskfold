@@ -51,5 +51,5 @@ xapp:
 
 # 重新生成应用图标（改 scripts/gen_icon.swift 后执行，随后 make xbuild）
 icon:
-	swift scripts/gen_icon.swift Resources/Assets.xcassets/AppIcon.appiconset
-	rm -f Resources/Assets.xcassets/AppIcon.appiconset/preview_512.png
+	swift scripts/gen_icon.swift Sources/MyFocus/Resources/Assets.xcassets/AppIcon.appiconset
+	rm -f Sources/MyFocus/Resources/Assets.xcassets/AppIcon.appiconset/preview_512.png
