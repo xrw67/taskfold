@@ -42,6 +42,29 @@ struct StoreTests {
         #expect(try s2.inboxTasks().count == 1)
     }
 
+    // MARK: 展开状态持久化
+
+    @Test func expandedStatePersistsAcrossReopen() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("storetest-\(UUID().uuidString).sqlite")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let s1 = try TaskStore(path: url.path)
+        let parent = try s1.addTask(title: "父任务")
+        _ = try s1.addTask(title: "子任务", parentID: parent.id)
+        #expect(try s1.task(id: parent.id)?.isExpanded == false, "新任务默认折叠")
+
+        try s1.setExpanded(parent.id, true)
+        let s2 = try TaskStore(path: url.path)
+        #expect(try s2.task(id: parent.id)?.isExpanded == true, "重开后展开状态保持")
+        #expect(try s2.expandedTaskIDs() == [parent.id])
+
+        try s2.setExpanded(parent.id, false)
+        let s3 = try TaskStore(path: url.path)
+        #expect(try s3.task(id: parent.id)?.isExpanded == false, "折叠后重开同样保持")
+        #expect(try s3.expandedTaskIDs().isEmpty)
+    }
+
     // MARK: 收件箱整理（INB-2）
 
     @Test func assignProjectMovesTaskOutOfInbox() throws {

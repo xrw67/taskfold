@@ -94,8 +94,6 @@ struct TaskRow: View {
     @Environment(AppState.self) private var app
     let task: TaskItem
     var showProjectName = false
-    /// 大纲层级（顶层=0），子任务递归 +1，用于视觉缩进
-    var depth = 0
     /// 是否响应行间拖放（今天/搜索视图禁用）
     var supportsRowDrop = true
 
@@ -140,14 +138,11 @@ struct TaskRow: View {
             DisclosureGroup(
                 isExpanded: Binding(
                     get: { app.expandedParents.contains(task.id) },
-                    set: { open in
-                        if open { app.expandedParents.insert(task.id) }
-                        else { app.expandedParents.remove(task.id) }
-                    }
+                    set: { open in app.setExpanded(task.id, open) }
                 )
             ) {
                 ForEach(children) { child in
-                    TaskRow(task: child, showProjectName: showProjectName, depth: depth + 1)
+                    TaskRow(task: child, showProjectName: showProjectName)
                 }
             } label: {
                 dropDecorated(plainRow)
@@ -284,7 +279,6 @@ struct TaskRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.leading, CGFloat(depth) * 14)
         .padding(.vertical, 3)
     }
 

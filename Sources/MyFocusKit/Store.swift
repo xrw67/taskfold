@@ -136,6 +136,12 @@ public final class TaskStore: Sendable {
                 t.column("updatedAt", .datetime).notNull()
             }
         }
+        // v2：大纲展开/折叠状态持久化（默认折叠 = v1 行为）。列名与属性名一致（Codable 映射）
+        migrator.registerMigration("v2") { db in
+            try db.alter(table: "task") { t in
+                t.add(column: "isExpanded", .boolean).notNull().defaults(to: false)
+            }
+        }
         return migrator
     }
 
@@ -521,6 +527,21 @@ public final class TaskStore: Sendable {
         _ = try db.write { db in
             let ids = try descendantIDs(db, root: taskID)
             try TaskItem.filter(ids.contains(Column("id"))).deleteAll(db)
+        }
+    }
+
+    /// 设置大纲展开/折叠状态。只写本列、不更新 updatedAt（纯 UI 状态，不算内容修改）
+    public func setExpanded(_ taskID: UUID, _ expanded: Bool) throws {
+        _ = try db.write { db in
+            try TaskItem.filter(id: taskID)
+                .updateAll(db, Column("isExpanded").set(to: expanded))
+        }
+    }
+
+    /// 全部处于展开状态的任务 id（启动与每次刷新时重建内存缓存用）
+    public func expandedTaskIDs() throws -> Set<UUID> {
+        try db.read { db in
+            Set(try UUID.fetchAll(db, sql: "SELECT id FROM task WHERE isExpanded"))
         }
     }
 

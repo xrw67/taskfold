@@ -29,6 +29,7 @@ final class AppState {
     var section: FocusSection = .inbox
     var selectedTaskID: UUID?
     var editingTaskID: UUID?
+    /// 展开状态内存缓存：启动与每次 reload 从库重建，写经 setExpanded 写穿持久化
     var expandedParents: Set<UUID> = []
     var showInspector = true
     /// 是否显示已完成/放弃任务。默认开启（用户偏好，持久化到 UserDefaults）
@@ -132,6 +133,8 @@ final class AppState {
             projectTasks = topByProject
             // 一次查询取全部分组（任意层级），TaskRow 递归渲染
             subtasks = try store.subtasksTree(includeCompleted: showCompleted)
+            // 展开状态以库为准重建（顺带清掉已删除任务的孤儿 id）
+            expandedParents = try store.expandedTaskIDs()
 
             inboxBadge = try store.inboxCount()
             todayBadge = try store.todayBadgeCounts(now: now, calendar: cal)
@@ -249,7 +252,7 @@ final class AppState {
     func addSubtask(to parent: TaskItem) {
         do {
             let child = try store.addTask(title: "新子任务", projectID: parent.projectID, parentID: parent.id)
-            expandedParents.insert(parent.id)
+            setExpanded(parent.id, true)
             reload()
             selectedTaskID = child.id
             editingTaskID = child.id
@@ -286,7 +289,7 @@ final class AppState {
         do {
             if try store.indentTask(task.id) {
                 if let moved = try store.task(id: task.id), let newParent = moved.parentID {
-                    expandedParents.insert(newParent)
+                    setExpanded(newParent, true)
                 }
                 reload()
             } else {
@@ -337,7 +340,7 @@ final class AppState {
     func dropTask(_ id: UUID, relativeTo anchor: TaskItem, position: OutlineDropPosition) -> Bool {
         do {
             if try store.dropTask(id, relativeTo: anchor.id, position: position) {
-                if case .into = position { expandedParents.insert(anchor.id) }
+                if case .into = position { setExpanded(anchor.id, true) }
                 reload()
                 return true
             }
@@ -349,6 +352,13 @@ final class AppState {
     }
 
     // MARK: 方向键导航（↑↓←→）
+
+    /// 展开/折叠统一入口：更新内存缓存并写穿数据库（重启/恢复备份后 reload 重建）
+    func setExpanded(_ id: UUID, _ open: Bool) {
+        if open { expandedParents.insert(id) } else { expandedParents.remove(id) }
+        // 纯 UI 偏好，写失败静默不打扰用户；下次 reload 会以库内状态为准
+        try? store.setExpanded(id, open)
+    }
 
     /// 当前视图可见行的扁平序列，顺序与 OutlineView 渲染一致：
     /// 顶层任务 + 递归展开的子任务（今天视图按 逾期→今天→未来7天 分段拼接）
@@ -401,7 +411,7 @@ final class AppState {
         if expandedParents.contains(task.id) {
             select(children[0].id)
         } else {
-            expandedParents.insert(task.id)
+            setExpanded(task.id, true)
         }
     }
 
@@ -409,7 +419,7 @@ final class AppState {
     func arrowLeft() {
         guard let task = selectedTask else { return }
         if expandedParents.contains(task.id), !(subtasks[task.id] ?? []).isEmpty {
-            expandedParents.remove(task.id)
+            setExpanded(task.id, false)
             return
         }
         if let parentID = task.parentID, visibleTasks.contains(where: { $0.id == parentID }) {

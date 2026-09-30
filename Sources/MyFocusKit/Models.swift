@@ -66,6 +66,9 @@ public struct TaskItem: Identifiable, Codable, Sendable, Equatable {
     public var sortIndex: Int
     public var createdAt: Date
     public var updatedAt: Date
+    /// 大纲中是否展开子任务（持久化，重启保持）。默认折叠。
+    /// 纯 UI 状态：变更只写本列，不更新 updatedAt。
+    public var isExpanded: Bool
 
     public init(
         id: UUID = UUID(),
@@ -77,7 +80,8 @@ public struct TaskItem: Identifiable, Codable, Sendable, Equatable {
         dueDate: Date? = nil,
         sortIndex: Int = 0,
         createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        isExpanded: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -89,6 +93,7 @@ public struct TaskItem: Identifiable, Codable, Sendable, Equatable {
         self.sortIndex = sortIndex
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.isExpanded = isExpanded
     }
 
     /// 是否逾期：有截止且截止早于当前时间且未完成
