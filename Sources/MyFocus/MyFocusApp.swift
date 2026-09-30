@@ -5,6 +5,7 @@ import MyFocusKit
 struct MyFocusApp: App {
     @State private var appState: AppState?
     @State private var bootError: String?
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         WindowGroup("MyFocus") {
@@ -127,12 +128,26 @@ struct MyFocusApp: App {
             }
 
             CommandMenu("帮助") {
+                Button("使用帮助") { openWindow(id: "help") }
+                    .keyboardShortcut("?", modifiers: .command)
+                Divider()
                 Button("聚焦搜索") { appState?.searchFocusRequest += 1 }
                     .keyboardShortcut("f", modifiers: .command)
             }
         }
 
+        helpScene
         settingsScene
+    }
+
+    /// 独立帮助窗口（帮助 → 使用帮助，⌘?）；不依赖数据库，启动失败时也可打开
+    private var helpScene: some Scene {
+        Window("使用帮助", id: "help") {
+            HelpView()
+                .frame(minWidth: 620, minHeight: 620)
+        }
+        .defaultSize(width: 720, height: 760)
+        .windowResizability(.contentMinSize)
     }
 
     private var settingsScene: some Scene {

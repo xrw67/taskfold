@@ -17,7 +17,10 @@ let package = Package(
             name: "MyFocus",
             dependencies: ["MyFocusKit"],
             exclude: ["Info.plist"],  // 同上
-            resources: [.process("Resources/Assets.xcassets")]
+            resources: [
+                .process("Resources/Assets.xcassets"),
+                .copy("Resources/Help.md"),  // 应用内帮助文档（帮助 → 使用帮助）
+            ]
         ),
         .executableTarget(
             name: "Bench",

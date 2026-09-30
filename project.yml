@@ -19,7 +19,13 @@ targets:
     type: application
     platform: macOS
     sources:
-      - Sources/MyFocus
+      # Help.md 显式声明进 Resources 构建阶段：xcodegen 对 .md 无默认 build phase，
+      # 不声明不会拷入 .app（拷入后平铺在 Contents/Resources 根，与 SPM 的子目录路径差异由 HelpView 双路径探测兜底）
+      - path: Sources/MyFocus
+        excludes:
+          - Resources/Help.md
+      - path: Sources/MyFocus/Resources/Help.md
+        buildPhase: resources
     dependencies:
       - target: MyFocusKit
     info:

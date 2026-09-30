@@ -15,20 +15,25 @@
 		27B79A6493D8F45FF661CAA4 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = E0F066C61EF5A86B4508D98A /* GRDB */; };
 		37059D399A28D9EC20912C38 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCFE9B6409F8677C3762B24A /* MainView.swift */; };
 		396A1A2F0F6A1CF5D6EBCA53 /* MyFocusKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; };
+		3A205ACD443DC1877D83B8C5 /* MigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E2AD2048A0E254CEF1CBB8 /* MigrationTests.swift */; };
 		49A825B2E42C3662FBC6FA35 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7CB807EB1C63039673ACA1 /* AppState.swift */; };
 		57A5538DB80EB43C26D4D6FC /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5061B4E32E214DA02936F297 /* StoreTests.swift */; };
 		5FB90DF4A614BEDE3D89C09B /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA8C9C205A7EC8D60824D16 /* Store.swift */; };
 		66073A51236FE55C4D66A248 /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D958AD3E7EDDEC66AE49238 /* ModelsTests.swift */; };
 		676C49022669E8A665E26187 /* MyFocusKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6873D3ACE3AF2ED55C8F03FB /* MyFocusKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; };
+		69ABD077210521801B889CCD /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC46CF3F1716DBA3CFF9D80 /* HelpView.swift */; };
 		74C5FDE9CA49B4729785B9D1 /* MyFocusKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; };
+		830A4D7459CC7095CD9BC18D /* TaskDropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238C61AB9414A91938A93E07 /* TaskDropTests.swift */; };
 		850221769C90E9E2D128C865 /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B8536338241E739A96F250 /* TaskRowView.swift */; };
 		8B1D969BCF3CDF7BDAD01708 /* MyFocusKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8F5AD307FD4AF47190366E24 /* ExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 835A9F4C37447EC707429AB7 /* ExportTests.swift */; };
 		908B6236C9C75509E7678058 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3846E21135501DF4F51BF8CF /* Assets.xcassets */; };
+		A2192C6EBED3BF3064CA06DF /* Help.md in Resources */ = {isa = PBXBuildFile; fileRef = FA5D53AA15801708892EF55B /* Help.md */; };
 		A51213EADA1FEF1E65FB2F54 /* OutlineEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05054C82912EC7D81FD549EA /* OutlineEditingTests.swift */; };
 		B9954AA1800E61A0BEAAC1DB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A65A98A1B8CE1EA85746796 /* Models.swift */; };
 		C100F7A44FB5B42BB52FFACD /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E445441FB55AD66EB72230C /* InspectorView.swift */; };
+		C1DFF5F0EF2B094A2FCAFE33 /* ProjectReorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABBB8A49E161F658ABE2675 /* ProjectReorderTests.swift */; };
 		CABCBB2955F5BAFFA8FE07A9 /* KeyboardRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04ADDACBE449B510690FD22D /* KeyboardRouter.swift */; };
 		CBBA5367766835653D4525BA /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA52CF20B3C2531AB99FCC87 /* GRDB */; };
 		D188EE29A422228BA293E3E3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB206B933EDDCF8AFA7879D /* main.swift */; };
@@ -89,8 +94,11 @@
 		04ADDACBE449B510690FD22D /* KeyboardRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardRouter.swift; sourceTree = "<group>"; };
 		05054C82912EC7D81FD549EA /* OutlineEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlineEditingTests.swift; sourceTree = "<group>"; };
 		07B8536338241E739A96F250 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
-		1A3B7F0EE72FE906990BA366 /* Bench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Bench; sourceTree = BUILT_PRODUCTS_DIR; };
+		0ABBB8A49E161F658ABE2675 /* ProjectReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectReorderTests.swift; sourceTree = "<group>"; };
+		1A3B7F0EE72FE906990BA366 /* Bench */ = {isa = PBXFileReference; includeInIndex = 0; path = Bench; sourceTree = BUILT_PRODUCTS_DIR; };
+		1FC46CF3F1716DBA3CFF9D80 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		2314EBFC82A297196BC3F62D /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		238C61AB9414A91938A93E07 /* TaskDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDropTests.swift; sourceTree = "<group>"; };
 		2DE9890FECBD8105FEEF6965 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		3846E21135501DF4F51BF8CF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4DA8C9C205A7EC8D60824D16 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
@@ -108,7 +116,9 @@
 		AB7AFB39C2CA59975FF870FA /* MyFocusKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyFocusKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MyFocusKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCCD397525A816801094A82C /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
+		E1E2AD2048A0E254CEF1CBB8 /* MigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationTests.swift; sourceTree = "<group>"; };
 		F46BE3E3AB616231324E70E0 /* MyFocusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyFocusApp.swift; sourceTree = "<group>"; };
+		FA5D53AA15801708892EF55B /* Help.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Help.md; sourceTree = "<group>"; };
 		FBFD7F2F57DCB3376888173D /* MyFocus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyFocus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCFE9B6409F8677C3762B24A /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		FF1022193BFABD8A1F7E059E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -154,6 +164,7 @@
 		267AD95827FAB82A1B054330 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				1FC46CF3F1716DBA3CFF9D80 /* HelpView.swift */,
 				7E445441FB55AD66EB72230C /* InspectorView.swift */,
 				FCFE9B6409F8677C3762B24A /* MainView.swift */,
 				709EA6A1387B31C8BF3BAFD5 /* OutlineView.swift */,
@@ -188,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				3846E21135501DF4F51BF8CF /* Assets.xcassets */,
+				FA5D53AA15801708892EF55B /* Help.md */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -240,9 +252,12 @@
 			children = (
 				9BEE546A774E296D5300FE9F /* BackupTests.swift */,
 				835A9F4C37447EC707429AB7 /* ExportTests.swift */,
+				E1E2AD2048A0E254CEF1CBB8 /* MigrationTests.swift */,
 				8D958AD3E7EDDEC66AE49238 /* ModelsTests.swift */,
 				05054C82912EC7D81FD549EA /* OutlineEditingTests.swift */,
+				0ABBB8A49E161F658ABE2675 /* ProjectReorderTests.swift */,
 				5061B4E32E214DA02936F297 /* StoreTests.swift */,
+				238C61AB9414A91938A93E07 /* TaskDropTests.swift */,
 			);
 			path = MyFocusKitTests;
 			sourceTree = "<group>";
@@ -345,7 +360,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2700;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					54A065D426962096849717C0 = {
 						ProvisioningStyle = Automatic;
@@ -362,7 +377,7 @@
 			mainGroup = 30EF475B3F4422FF1D82B6FB;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB" */,
+				C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 307E123759AB4B0B8A63263E /* Products */;
@@ -383,6 +398,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				908B6236C9C75509E7678058 /* Assets.xcassets in Resources */,
+				A2192C6EBED3BF3064CA06DF /* Help.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -395,9 +411,12 @@
 			files = (
 				2229F747680E16C02DAB7BBD /* BackupTests.swift in Sources */,
 				8F5AD307FD4AF47190366E24 /* ExportTests.swift in Sources */,
+				3A205ACD443DC1877D83B8C5 /* MigrationTests.swift in Sources */,
 				66073A51236FE55C4D66A248 /* ModelsTests.swift in Sources */,
 				A51213EADA1FEF1E65FB2F54 /* OutlineEditingTests.swift in Sources */,
+				C1DFF5F0EF2B094A2FCAFE33 /* ProjectReorderTests.swift in Sources */,
 				57A5538DB80EB43C26D4D6FC /* StoreTests.swift in Sources */,
+				830A4D7459CC7095CD9BC18D /* TaskDropTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -417,6 +436,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				49A825B2E42C3662FBC6FA35 /* AppState.swift in Sources */,
+				69ABD077210521801B889CCD /* HelpView.swift in Sources */,
 				C100F7A44FB5B42BB52FFACD /* InspectorView.swift in Sources */,
 				CABCBB2955F5BAFFA8FE07A9 /* KeyboardRouter.swift in Sources */,
 				37059D399A28D9EC20912C38 /* MainView.swift in Sources */,
@@ -463,19 +483,16 @@
 				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
 				INFOPLIST_FILE = Sources/MyFocusKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xrw.MyFocusKit;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -487,7 +504,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -502,7 +518,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -519,13 +534,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = VVCD6A4G42;
 				INFOPLIST_FILE = Sources/MyFocus/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -542,19 +553,16 @@
 				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
 				INFOPLIST_FILE = Sources/MyFocusKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
 				PRODUCT_BUNDLE_IDENTIFIER = com.xrw.MyFocusKit;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -597,7 +605,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -623,7 +630,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -665,7 +671,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -684,7 +689,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
@@ -695,7 +699,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -710,13 +713,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = VVCD6A4G42;
 				INFOPLIST_FILE = Sources/MyFocus/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -732,7 +731,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -795,7 +793,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -808,12 +806,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		CA52CF20B3C2531AB99FCC87 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 		E0F066C61EF5A86B4508D98A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = C3A20491779FE2A1985259B7 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */

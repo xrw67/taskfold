@@ -46,6 +46,8 @@ V1 范围（需求文档 6.1）全部实现：任务与项目（含一层子任�
 
 大纲快捷键（Tab/⇧Tab/回车/⌥↑↓/↑↓←→/Space/⌥Space）由应用级键盘监听（`KeyboardRouter`，NSEvent monitor）接管：**不依赖列表焦点**，任意焦点状态下都有效；文本输入时自动放行。子任务支持**任意层级嵌套**，完成/放弃/恢复和删除会递归作用于整棵子树。
 
+应用内也内置了同样的帮助（含本表）：**帮助 → 使用帮助（⌘?）**，内容来自打包资源 `Sources/MyFocus/Resources/Help.md`，与本节需同步维护。
+
 ## 开发环境
 
 系统 `xcode-select` 指向 Command Line Tools，但 CLT 缺少 SwiftUI/SwiftData/swift-testing 的宏插件。本机装有完整 Xcode 27，所有构建命令统一通过 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` 使用它（已封装在 Makefile，免 sudo 切换）。
