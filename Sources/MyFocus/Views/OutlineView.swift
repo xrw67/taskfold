@@ -40,24 +40,29 @@ struct OutlineView: View {
             if isEmpty {
                 OutlineEmptyState(kind: .today)
             } else {
-                List(selection: $app.selectedTaskID) {
-                    ForEach([(TodaySection.overdue, overdue), (.today, today), (.next7Days, next7)], id: \.0) { section, tasks in
-                        if !tasks.isEmpty {
-                            Section {
-                                ForEach(tasks) { task in
-                                    TaskRow(task: task, showProjectName: true)
+                ScrollViewReader { proxy in
+                    List(selection: $app.selectedTaskID) {
+                        ForEach([(TodaySection.overdue, overdue), (.today, today), (.next7Days, next7)], id: \.0) { section, tasks in
+                            if !tasks.isEmpty {
+                                Section {
+                                    ForEach(tasks) { task in
+                                        TaskRow(task: task, showProjectName: true)
+                                    }
+                                } header: {
+                                    TodaySectionHeader(
+                                        title: section.rawValue,
+                                        count: tasks.count,
+                                        urgent: section == .overdue
+                                    )
                                 }
-                            } header: {
-                                TodaySectionHeader(
-                                    title: section.rawValue,
-                                    count: tasks.count,
-                                    urgent: section == .overdue
-                                )
                             }
                         }
                     }
+                    .onChange(of: app.selectedTaskID) { app.refreshSelected() }
+                    .onChange(of: app.selectionScrollRequest) {
+                        if let id = app.selectedTaskID { proxy.scrollTo(id) }
+                    }
                 }
-                .onChange(of: app.selectedTaskID) { app.refreshSelected() }
             }
         }
     }
@@ -70,14 +75,19 @@ struct OutlineView: View {
             if tasks.isEmpty {
                 OutlineEmptyState(kind: empty)
             } else {
-                List(selection: $app.selectedTaskID) {
-                    Section(title) {
-                        ForEach(tasks) { task in
-                            TaskRow(task: task)
+                ScrollViewReader { proxy in
+                    List(selection: $app.selectedTaskID) {
+                        Section(title) {
+                            ForEach(tasks) { task in
+                                TaskRow(task: task)
+                            }
                         }
                     }
+                    .onChange(of: app.selectedTaskID) { app.refreshSelected() }
+                    .onChange(of: app.selectionScrollRequest) {
+                        if let id = app.selectedTaskID { proxy.scrollTo(id) }
+                    }
                 }
-                .onChange(of: app.selectedTaskID) { app.refreshSelected() }
             }
         }
     }

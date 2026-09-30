@@ -43,6 +43,8 @@ final class AppState {
     var lastError: String?
     /// ⌘F 请求聚焦搜索框：MainView 监听该值变化（菜单命令无法直接持有 FocusState）
     var searchFocusRequest = 0
+    /// 方向键移动选中后自增：OutlineView 监听并 scrollTo 选中行
+    var selectionScrollRequest = 0
 
     // MARK: 展示数据（每次变更后整体刷新）
 
@@ -330,13 +332,90 @@ final class AppState {
         }
     }
 
+    // MARK: 方向键导航（↑↓←→）
+
+    /// 当前视图可见行的扁平序列，顺序与 OutlineView 渲染一致：
+    /// 顶层任务 + 递归展开的子任务（今天视图按 逾期→今天→未来7天 分段拼接）
+    private var visibleTasks: [TaskItem] {
+        let tops: [TaskItem]
+        if isSearching {
+            tops = searchResults
+        } else {
+            switch section {
+            case .inbox: tops = inboxTasks
+            case .today: tops = [.overdue, .today, .next7Days].flatMap { todaySections[$0] ?? [] }
+            case .project(let id): tops = projectTasks[id] ?? []
+            }
+        }
+        var result: [TaskItem] = []
+        func append(_ task: TaskItem) {
+            result.append(task)
+            guard expandedParents.contains(task.id) else { return }
+            for child in subtasks[task.id] ?? [] { append(child) }
+        }
+        for task in tops { append(task) }
+        return result
+    }
+
+    /// ↑/↓：移到可见行的上/下一行；无选中或选中不在当前视图时，↓ 落首行、↑ 落末行。
+    /// 返回是否吞掉事件：无可见行时 false（放行给侧边栏等原生行为），边界处 true（无动作）
+    @discardableResult
+    func moveSelection(_ offset: Int) -> Bool {
+        let tasks = visibleTasks
+        guard !tasks.isEmpty else { return false }
+        let index = selectedTaskID.flatMap { id in tasks.firstIndex(where: { $0.id == id }) }
+        let next: Int
+        if let index {
+            next = index + offset
+            guard tasks.indices.contains(next) else { return true }
+        } else {
+            next = offset > 0 ? tasks.startIndex : tasks.index(before: tasks.endIndex)
+        }
+        select(tasks[next].id)
+        return true
+    }
+
+    /// →：未展开则展开；已展开则进入第一个子任务
+    func arrowRight() {
+        guard let task = selectedTask else { return }
+        guard let children = subtasks[task.id], !children.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        if expandedParents.contains(task.id) {
+            select(children[0].id)
+        } else {
+            expandedParents.insert(task.id)
+        }
+    }
+
+    /// ←：已展开则折叠；否则选中父任务（父行在当前视图不可见时无效，如今天/搜索视图）
+    func arrowLeft() {
+        guard let task = selectedTask else { return }
+        if expandedParents.contains(task.id), !(subtasks[task.id] ?? []).isEmpty {
+            expandedParents.remove(task.id)
+            return
+        }
+        if let parentID = task.parentID, visibleTasks.contains(where: { $0.id == parentID }) {
+            select(parentID)
+        } else {
+            NSSound.beep()
+        }
+    }
+
+    private func select(_ id: UUID) {
+        selectedTaskID = id
+        refreshSelected()
+        selectionScrollRequest += 1
+    }
+
     // MARK: 键盘路由（KeyboardRouter 调用）
 
     /// 应用级 keyDown 拦截：命中大纲快捷键返回 true（吞掉事件）。
     /// 文本编辑上下文（行内编辑/搜索框/检查器文本框）一律放行。
+    /// 裸 ↑↓ 例外：无选中任务时也响应（↓ 选首行 / ↑ 选末行）。
     func swallowKeyEvent(_ event: NSEvent) -> Bool {
         guard editingTaskID == nil,
-              selectedTask != nil,
               event.window === NSApp.keyWindow,
               !(NSApp.keyWindow?.firstResponder is NSTextView)
         else { return false }
@@ -346,13 +425,21 @@ final class AppState {
         let hasOption = mods.contains(.option)
         let hasCommand = mods.contains(.command)
         let hasControl = mods.contains(.control)
+        let hasNoModifiers = !hasShift && !hasOption && !hasCommand && !hasControl
 
-        // macOS keyCode：48=Tab 36=Return 49=Space 125=↓ 126=↑
+        // 裸 ↑↓ 前置：不依赖选中；无可选行时放行（如空大纲，交给侧边栏原生行为）
+        if hasNoModifiers && (event.keyCode == 125 || event.keyCode == 126) {
+            return moveSelection(event.keyCode == 125 ? 1 : -1)
+        }
+
+        guard selectedTask != nil else { return false }
+
+        // macOS keyCode：48=Tab 36=Return 49=Space 123=← 124=→ 125=↓ 126=↑
         switch event.keyCode {
         case 48 where !hasCommand && !hasControl && !hasOption:
             if hasShift { outdentSelected() } else { indentSelected() }
             return true
-        case 36 where !hasShift && !hasOption && !hasCommand && !hasControl:
+        case 36 where hasNoModifiers:
             insertAfter(selectedTask!)
             return true
         case 125 where hasOption && !hasShift && !hasCommand && !hasControl:
@@ -360,6 +447,12 @@ final class AppState {
             return true
         case 126 where hasOption && !hasShift && !hasCommand && !hasControl:
             moveSelected(-1)
+            return true
+        case 123 where hasNoModifiers:
+            arrowLeft()
+            return true
+        case 124 where hasNoModifiers:
+            arrowRight()
             return true
         case 49 where !hasCommand && !hasControl:
             if hasOption {
