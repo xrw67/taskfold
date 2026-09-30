@@ -10,7 +10,7 @@
 
 export DEVELOPER_DIR = /Applications/Xcode.app/Contents/Developer
 
-.PHONY: build release test run bench clean project xbuild xtest xapp icon
+.PHONY: build release test run bench clean project xbuild xtest xapp icon archive export
 
 # --- Swift Package 工作流 ---
 
@@ -38,9 +38,10 @@ clean:
 project:
 	xcodegen generate
 
-# xcodebuild 构建 App scheme（含测试）
+# xcodebuild 构建 App scheme（含测试）；无签名账号的环境（如 CI）可透传参数走 Ad-hoc：
+#   make xbuild XCODEBUILD_ARGS='CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM='
 xbuild:
-	xcodebuild -project Taskfold.xcodeproj -scheme Taskfold -derivedDataPath .build/xcode build
+	xcodebuild -project Taskfold.xcodeproj -scheme Taskfold -derivedDataPath .build/xcode build $(XCODEBUILD_ARGS)
 
 xtest:
 	xcodebuild -project Taskfold.xcodeproj -scheme Taskfold -derivedDataPath .build/xcode test
@@ -48,6 +49,18 @@ xtest:
 # 启动 xcodebuild 产物 .app
 xapp:
 	open .build/xcode/Build/Products/Debug/Taskfold.app
+
+# --- Mac App Store 发布（详见 docs/release.md）---
+
+# 归档 Release xcarchive（自动签名，需 Xcode 已登录 Apple ID 且 Team ID 已配置）
+archive:
+	xcodebuild archive -project Taskfold.xcodeproj -scheme Taskfold \
+		-configuration Release -archivePath .build/Taskfold.xcarchive -allowProvisioningUpdates
+
+# 从归档导出 App Store Connect 上传包 .build/export/Taskfold.pkg（Transporter 拖拽上传）
+export:
+	xcodebuild -exportArchive -archivePath .build/Taskfold.xcarchive \
+		-exportOptionsPlist scripts/ExportOptions.plist -exportPath .build/export -allowProvisioningUpdates
 
 # 重新生成应用图标（改 scripts/gen_icon.swift 后执行，随后 make xbuild）
 icon:

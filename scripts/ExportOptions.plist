@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 导出 App Store Connect 上传包（Taskfold.pkg，用 Transporter 拖拽上传） -->
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>destination</key>
+	<string>export</string>
+	<!-- 自动签名：导出时自动重签为 Apple Distribution -->
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<!-- ⚠️ 与 project.yml 的 DEVELOPMENT_TEAM 同步替换为你的 10 位 Team ID -->
+	<key>teamID</key>
+	<string>XXXXXXXXXX</string>
+	<key>uploadSymbols</key>
+	<true/>
+</dict>
+</plist>

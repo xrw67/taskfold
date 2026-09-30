@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Mac App Store 上架必开 App Sandbox -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- 导入 CSV/OPML 与导出：NSOpenPanel/NSSavePanel 用户选定文件读写（Powerbox 自动授权） -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>

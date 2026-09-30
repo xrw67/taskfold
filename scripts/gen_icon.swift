@@ -154,6 +154,7 @@ let sizes: [(CGFloat, String)] = [
     (512, "icon_256x256@2x.png"),
     (512, "icon_512x512.png"),
     (1024, "icon_512x512@2x.png"),
+    (1024, "icon_1024.png"),  // App Store Connect 上传用 single-size
 ]
 
 print("生成图标 → \(outputDir)")
