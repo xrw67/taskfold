@@ -46,6 +46,9 @@ struct StatusCircle: View {
                         .foregroundStyle(color)
                 }
             }
+            // 热区放大到 24pt，降低紧凑行距下点到相邻行的概率
+            .frame(width: 24, height: 24)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(task.status == .active ? "点击完成（⌥点击放弃）" : "点击恢复")
@@ -208,7 +211,7 @@ struct TaskRow: View {
             }
         }
         .padding(.leading, CGFloat(depth) * 14)
-        .padding(.vertical, 1)
+        .padding(.vertical, 3)
     }
 
     /// 搜索命中段高亮（KB-2）

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 import MyFocusKit
 
 /// 侧边栏当前区域
@@ -20,6 +21,8 @@ enum FocusSection: Hashable {
 @MainActor @Observable
 final class AppState {
     let store: TaskStore
+    let backupManager = BackupManager()
+    private(set) var backups: [BackupEntry] = []
 
     // MARK: 视图状态
 
@@ -28,7 +31,14 @@ final class AppState {
     var editingTaskID: UUID?
     var expandedParents: Set<UUID> = []
     var showInspector = true
-    var showCompleted = false
+    /// 是否显示已完成/放弃任务。默认开启（用户偏好，持久化到 UserDefaults）
+    var showCompleted: Bool {
+        didSet {
+            UserDefaults.standard.set(showCompleted, forKey: Self.showCompletedKey)
+        }
+    }
+
+    static let showCompletedKey = "showCompleted"
     var searchText = ""
     var lastError: String?
     /// ⌘F 请求聚焦搜索框：MainView 监听该值变化（菜单命令无法直接持有 FocusState）
@@ -48,6 +58,12 @@ final class AppState {
     var projectBadges: [UUID: (remaining: Int, overdue: Int)] = [:]
 
     init(store: TaskStore) {
+        // 首次使用默认显示已完成；之后记住用户选择
+        if let saved = UserDefaults.standard.object(forKey: Self.showCompletedKey) as? Bool {
+            showCompleted = saved
+        } else {
+            showCompleted = true
+        }
         self.store = store
         do {
             try store.seedSampleDataIfEmpty()
@@ -132,6 +148,77 @@ final class AppState {
             lastError = nil
         } catch {
             lastError = "数据加载失败：\(error.localizedDescription)"
+        }
+    }
+
+    // MARK: 备份与导出（DATA-1 / DATA-2）
+
+    func refreshBackups() {
+        backups = backupManager.listBackups()
+    }
+
+    @discardableResult
+    func createBackupNow() -> Bool {
+        do {
+            _ = try backupManager.createBackup(of: store)
+            refreshBackups()
+            return true
+        } catch {
+            lastError = "备份失败：\(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// 应用启动时调用：当天还没有备份则自动创建一份
+    func createDailyBackupIfNeeded() {
+        do {
+            _ = try backupManager.createDailyBackupIfNeeded(of: store)
+            refreshBackups()
+        } catch {
+            lastError = "自动备份失败：\(error.localizedDescription)"
+        }
+    }
+
+    /// 用备份覆盖当前库后整界面刷新（在线热替换，无需重启）
+    func restoreBackup(_ entry: BackupEntry) {
+        do {
+            selectedTaskID = nil
+            editingTaskID = nil
+            expandedParents.removeAll()
+            try backupManager.restore(entry, into: store)
+            reload()
+            refreshBackups()
+        } catch {
+            lastError = "恢复备份失败：\(error.localizedDescription)"
+        }
+    }
+
+    /// 导出并弹存储面板
+    func exportThenSave(_ format: ExportFormat) {
+        let content: String
+        do {
+            let exporter = TaskExporter(store: store)
+            switch format {
+            case .csv: content = try exporter.csv()
+            case .opml: content = try exporter.opml()
+            case .markdown: content = try exporter.markdown()
+            }
+        } catch {
+            lastError = "导出失败：\(error.localizedDescription)"
+            return
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd"
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "MyFocus-\(formatter.string(from: Date())).\(format.fileExtension)"
+        panel.allowedContentTypes = [UTType(filenameExtension: format.fileExtension) ?? .data]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try content.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            lastError = "写入文件失败：\(error.localizedDescription)"
         }
     }
 
@@ -295,10 +382,25 @@ final class AppState {
     func setStatus(_ task: TaskItem, to status: ItemStatus) {
         do {
             try store.setTaskStatus(task.id, status)
+            // 完成后把选中转移到同容器的相邻任务：被完成的任务会从列表消失，
+            // 若留给 List 自行处理，选中可能跳到其父任务行，下一次空格就会误完成整棵子树
+            if status != .active, selectedTaskID == task.id {
+                selectedTaskID = neighborForSelection(around: task)
+            }
             reload()
         } catch {
             lastError = "更新状态失败：\(error.localizedDescription)"
         }
+    }
+
+    /// 同容器内被移除任务的相邻任务（先取后方，再取前方）
+    private func neighborForSelection(around task: TaskItem) -> UUID? {
+        guard let list = try? store.siblingTasks(of: task),
+              let index = list.firstIndex(where: { $0.id == task.id })
+        else { return nil }
+        if index + 1 < list.count { return list[index + 1].id }
+        if index > 0 { return list[index - 1].id }
+        return nil
     }
 
     func update(_ task: TaskItem) {

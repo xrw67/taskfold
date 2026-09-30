@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		047ADB2966C352A5D9432116 /* OutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709EA6A1387B31C8BF3BAFD5 /* OutlineView.swift */; };
 		1EB3DE9306DB1CDBD193A71E /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2314EBFC82A297196BC3F62D /* SidebarView.swift */; };
+		2229F747680E16C02DAB7BBD /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BEE546A774E296D5300FE9F /* BackupTests.swift */; };
+		226D2EC018D878E06D9C22AE /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCD397525A816801094A82C /* Backup.swift */; };
 		2295AFCA720770ACB64CA985 /* MyFocusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46BE3E3AB616231324E70E0 /* MyFocusApp.swift */; };
 		27B79A6493D8F45FF661CAA4 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = E0F066C61EF5A86B4508D98A /* GRDB */; };
 		37059D399A28D9EC20912C38 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCFE9B6409F8677C3762B24A /* MainView.swift */; };
@@ -22,6 +24,7 @@
 		74C5FDE9CA49B4729785B9D1 /* MyFocusKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; };
 		850221769C90E9E2D128C865 /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B8536338241E739A96F250 /* TaskRowView.swift */; };
 		8B1D969BCF3CDF7BDAD01708 /* MyFocusKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		8F5AD307FD4AF47190366E24 /* ExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 835A9F4C37447EC707429AB7 /* ExportTests.swift */; };
 		908B6236C9C75509E7678058 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3846E21135501DF4F51BF8CF /* Assets.xcassets */; };
 		A51213EADA1FEF1E65FB2F54 /* OutlineEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05054C82912EC7D81FD549EA /* OutlineEditingTests.swift */; };
 		B9954AA1800E61A0BEAAC1DB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A65A98A1B8CE1EA85746796 /* Models.swift */; };
@@ -29,6 +32,7 @@
 		CABCBB2955F5BAFFA8FE07A9 /* KeyboardRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04ADDACBE449B510690FD22D /* KeyboardRouter.swift */; };
 		CBBA5367766835653D4525BA /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA52CF20B3C2531AB99FCC87 /* GRDB */; };
 		D188EE29A422228BA293E3E3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AB206B933EDDCF8AFA7879D /* main.swift */; };
+		DC733D504DA65169BEFF14B5 /* Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9135F13FDAE27CEADE8118CA /* Export.swift */; };
 		F34992A307CE1ABB660E7D98 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DE9890FECBD8105FEEF6965 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
@@ -97,9 +101,13 @@
 		709EA6A1387B31C8BF3BAFD5 /* OutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlineView.swift; sourceTree = "<group>"; };
 		7D7CB807EB1C63039673ACA1 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		7E445441FB55AD66EB72230C /* InspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorView.swift; sourceTree = "<group>"; };
+		835A9F4C37447EC707429AB7 /* ExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportTests.swift; sourceTree = "<group>"; };
 		8D958AD3E7EDDEC66AE49238 /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
+		9135F13FDAE27CEADE8118CA /* Export.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Export.swift; sourceTree = "<group>"; };
+		9BEE546A774E296D5300FE9F /* BackupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupTests.swift; sourceTree = "<group>"; };
 		AB7AFB39C2CA59975FF870FA /* MyFocusKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyFocusKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B506CEA2087B5A653D6F5EA2 /* MyFocusKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MyFocusKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCCD397525A816801094A82C /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
 		F46BE3E3AB616231324E70E0 /* MyFocusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyFocusApp.swift; sourceTree = "<group>"; };
 		FBFD7F2F57DCB3376888173D /* MyFocus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyFocus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCFE9B6409F8677C3762B24A /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -187,6 +195,8 @@
 		65F23557C91B7376170E2B24 /* MyFocusKit */ = {
 			isa = PBXGroup;
 			children = (
+				CCCD397525A816801094A82C /* Backup.swift */,
+				9135F13FDAE27CEADE8118CA /* Export.swift */,
 				64D33477681250D1875838F2 /* Info.plist */,
 				5A65A98A1B8CE1EA85746796 /* Models.swift */,
 				4DA8C9C205A7EC8D60824D16 /* Store.swift */,
@@ -228,6 +238,8 @@
 		C10BB18776938E1728B353F4 /* MyFocusKitTests */ = {
 			isa = PBXGroup;
 			children = (
+				9BEE546A774E296D5300FE9F /* BackupTests.swift */,
+				835A9F4C37447EC707429AB7 /* ExportTests.swift */,
 				8D958AD3E7EDDEC66AE49238 /* ModelsTests.swift */,
 				05054C82912EC7D81FD549EA /* OutlineEditingTests.swift */,
 				5061B4E32E214DA02936F297 /* StoreTests.swift */,
@@ -381,6 +393,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2229F747680E16C02DAB7BBD /* BackupTests.swift in Sources */,
+				8F5AD307FD4AF47190366E24 /* ExportTests.swift in Sources */,
 				66073A51236FE55C4D66A248 /* ModelsTests.swift in Sources */,
 				A51213EADA1FEF1E65FB2F54 /* OutlineEditingTests.swift in Sources */,
 				57A5538DB80EB43C26D4D6FC /* StoreTests.swift in Sources */,
@@ -391,6 +405,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				226D2EC018D878E06D9C22AE /* Backup.swift in Sources */,
+				DC733D504DA65169BEFF14B5 /* Export.swift in Sources */,
 				B9954AA1800E61A0BEAAC1DB /* Models.swift in Sources */,
 				5FB90DF4A614BEDE3D89C09B /* Store.swift in Sources */,
 			);

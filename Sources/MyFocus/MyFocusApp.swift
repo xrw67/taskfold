@@ -30,6 +30,8 @@ struct MyFocusApp: App {
                     // 大纲快捷键（Tab/⇧Tab/回车/⌥↑↓/Space）由 NSEvent monitor 统一接管：
                     // 无修饰键 Tab 的菜单 key equivalent 会被系统焦点循环吞掉
                     KeyboardRouter.shared.install(state)
+                    // 当天首次启动自动做一份备份（DATA-1）
+                    state.createDailyBackupIfNeeded()
                 } catch {
                     bootError = "数据库位置：\(TaskStore.defaultDatabaseURL().path)\n\n\(error.localizedDescription)"
                 }
@@ -41,6 +43,15 @@ struct MyFocusApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("新建任务") { appState?.newTask() }
                     .keyboardShortcut("n", modifiers: .command)
+            }
+            CommandGroup(after: .saveItem) {
+                Menu("导出为") {
+                    Button("CSV 表格…") { appState?.exportThenSave(.csv) }
+                    Button("OPML 大纲…") { appState?.exportThenSave(.opml) }
+                    Button("Markdown…") { appState?.exportThenSave(.markdown) }
+                }
+                Divider()
+                Button("立即备份") { _ = appState?.createBackupNow() }
             }
             CommandMenu("视图") {
                 Button("收件箱") { appState?.section = .inbox }
@@ -60,7 +71,7 @@ struct MyFocusApp: App {
                 ))
                 .keyboardShortcut("i", modifiers: [.command, .option])
                 Toggle("显示已完成", isOn: Binding(
-                    get: { appState?.showCompleted ?? false },
+                    get: { appState?.showCompleted ?? true },
                     set: {
                         appState?.showCompleted = $0
                         appState?.reload()

@@ -33,6 +33,30 @@ public final class TaskStore: Sendable {
         try TaskStore(path: ":memory:")
     }
 
+    // MARK: 备份（SQLite online backup，支持 WAL 快照与在线热替换）
+
+    /// 把当前库在线备份到目标文件：先写临时名，成功后改为正式名（防半截备份）
+    public func backupDatabase(to url: URL) throws {
+        let dir = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let tmpURL = dir.appendingPathComponent(".\(UUID().uuidString).tmp")
+        defer { try? FileManager.default.removeItem(at: tmpURL) }
+
+        let destination = try DatabaseQueue(path: tmpURL.path)
+        try db.backup(to: destination)
+
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        try FileManager.default.moveItem(at: tmpURL, to: url)
+    }
+
+    /// 用备份文件在线覆盖当前库（反向 backup，热替换，无需重启应用）
+    public func restoreDatabase(from url: URL) throws {
+        let source = try DatabaseQueue(path: url.path)
+        try source.backup(to: db)
+    }
+
     /// 默认数据库路径：~/Library/Application Support/MyFocus/MyFocus.sqlite
     public static func defaultDatabaseURL() -> URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -148,13 +172,26 @@ public final class TaskStore: Sendable {
         return task
     }
 
+    /// 编辑任务内容（标题/备注/截止）。只更新内容字段——状态走 setTaskStatus、
+    /// 层级走大纲操作、归属走 setTaskProject，避免过期快照覆盖这些字段
     public func updateTask(_ task: TaskItem) throws {
-        var t = task
-        t.updatedAt = Date()
-        try db.write { try t.update($0) }
+        _ = try db.write { db in
+            try TaskItem.filter(id: task.id).updateAll(
+                db,
+                Column("title").set(to: task.title),
+                Column("note").set(to: task.note),
+                Column("dueDate").set(to: task.dueDate),
+                Column("updatedAt").set(to: Date())
+            )
+        }
     }
 
     // MARK: 大纲编辑（TP-1：Tab 缩进 / ⇧Tab 提升 / ⌥↑↓ 移动 / 回车续行）
+
+    /// 同容器兄弟任务（含已完成，按顺序）。供 UI 的选中转移等逻辑使用。
+    public func siblingTasks(of task: TaskItem) throws -> [TaskItem] {
+        try db.read { try siblings($0, of: task) }
+    }
 
     /// 同容器的兄弟任务（含已完成），按 sortIndex 排序
     private func siblings(_ db: Database, of task: TaskItem) throws -> [TaskItem] {

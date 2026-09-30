@@ -256,4 +256,38 @@ struct OutlineEditingTests {
         #expect(try store.seedSampleDataIfEmpty(now: date(2026, 9, 28, 10)) == false)
         #expect(try store.projects().count == 1)
     }
+
+    // MARK: 完成子任务不影响父任务（bug 报告回归测试）
+
+    @Test func completingSubtaskNeverTouchesParent() throws {
+        let parent = try store.addTask(title: "父任务")
+        let child = try store.addTask(title: "子任务", parentID: parent.id)
+        try store.addTask(title: "孙任务", parentID: child.id)
+
+        // 完成/放弃最深层任务，祖先链状态必须保持不变
+        try store.setTaskStatus(child.id, .completed)
+        #expect(try store.task(id: parent.id)?.status == .active, "完成子任务绝不能改变父任务状态")
+
+        try store.setTaskStatus(child.id, .dropped)
+        #expect(try store.task(id: parent.id)?.status == .active)
+
+        // 反向：完成父任务则整棵子树级联
+        try store.setTaskStatus(parent.id, .completed)
+        #expect(try store.task(id: child.id)?.status == .completed)
+    }
+
+    @Test func updateTaskOnlyTouchesContentFields() throws {
+        let task = try store.addTask(title: "原标题")
+        try store.setTaskStatus(task.id, .completed)
+
+        // 过期快照：status 还是 active（模拟 UI 持有旧数据），只改标题
+        var stale = task
+        stale.title = "新标题"
+        // stale.status == .active（过期）
+        try store.updateTask(stale)
+
+        let after = try store.task(id: task.id)!
+        #expect(after.title == "新标题")
+        #expect(after.status == ItemStatus.completed, "内容编辑不得过期快照覆盖状态")
+    }
 }
