@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一分支/PR 的新推送取消旧运行：macOS runner 按 10 倍分钟计费，别浪费
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Swift Package 工作流：全量构建 + swift-testing 单元测试
+  spm:
+    name: SwiftPM（build + test）
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 工具链信息
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # GRDB 全量编译是大头，缓存 .build 显著提速
+      - name: 缓存 .build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: 构建（全部 target，含 Taskfold 与 Bench 可执行）
+        run: make build
+
+      - name: 单元测试（swift-testing）
+        run: make test
+
+  # Xcode 工作流：直接构建已提交的 Taskfold.xcodeproj——不装 xcodegen 重新生成，
+  # 避免其版本与本地不一致导致构建产物漂移；Ad-hoc 签名无需证书
+  app:
+    name: xcodeproj（.app 构建）
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 缓存 DerivedData
+        uses: actions/cache@v4
+        with:
+          path: .build/xcode
+          key: app-${{ runner.os }}-${{ hashFiles('project.yml', 'Taskfold.xcodeproj/project.pbxproj', 'Package.resolved') }}
+          restore-keys: app-${{ runner.os }}-
+
+      - name: xcodebuild 构建 .app
+        run: make xbuild

@@ -1,5 +1,7 @@
 # Taskfold
 
+[![CI](https://github.com/xrw67/taskfold/actions/workflows/ci.yml/badge.svg)](https://github.com/xrw67/taskfold/actions/workflows/ci.yml)
+
 类 OmniFocus 的 macOS 本地待办管理应用。本地优先（SQLite，无账号无联网）、GTD 工作流（收集 → 整理 → 执行 → 完成）、SwiftUI 原生界面。
 
 需求文档：[docs/requirements.md](docs/requirements.md)

@@ -20,6 +20,8 @@ make xapp       # 启动 .app 产物
 
 两套构建体系并存：Swift Package 用于快速 CLI 迭代；`Taskfold.xcodeproj` 用于 IDE 调试与分发。**不要手改 pbxproj**——改 `project.yml` 后 `make project`。`Sources/*/Info.plist` 由 xcodegen 生成且已在 Package.swift 中 exclude，勿手动提交（见 .gitignore）。
 
+CI（GitHub Actions，`.github/workflows/ci.yml`）在 macos-26 runner 上跑两个 job：`make build`+`make test`（SwiftPM 全量构建+swift-testing），以及 `make xbuild`（直接构建已提交的 xcodeproj，不装 xcodegen 重新生成，避免版本漂移）。
+
 ## 架构与边界
 
 - `Sources/TaskfoldKit/` — 数据层框架，**禁止引入 UI 依赖**：
