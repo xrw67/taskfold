@@ -187,6 +187,18 @@ public final class TaskStore: Sendable {
         }
     }
 
+    /// 按给定顺序整体重排项目（侧边栏拖拽排序）：重写全部 sortIndex 为 0…n-1。
+    /// 调用方应传入完整顺序（app.projects 全量）；未包含的项目保留原 sortIndex。
+    public func reorderProjects(_ orderedIDs: [UUID]) throws {
+        _ = try db.write { db in
+            let now = Date()
+            for (index, id) in orderedIDs.enumerated() {
+                try ProjectItem.filter(id: id)
+                    .updateAll(db, Column("sortIndex").set(to: index), Column("updatedAt").set(to: now))
+            }
+        }
+    }
+
     // MARK: 任务
 
     @discardableResult

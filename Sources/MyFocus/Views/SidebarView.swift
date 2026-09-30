@@ -55,6 +55,7 @@ struct SidebarView: View {
                 ForEach(app.projects) { project in
                     sidebarRow(project)
                 }
+                .onMove { app.moveProjects(from: $0, to: $1) }
                 newProjectButton
             }
         }

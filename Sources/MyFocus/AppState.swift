@@ -545,6 +545,18 @@ final class AppState {
         }
     }
 
+    /// 侧边栏拖拽调整项目顺序（onMove）
+    func moveProjects(from source: IndexSet, to destination: Int) {
+        var ordered = projects
+        ordered.move(fromOffsets: source, toOffset: destination)
+        do {
+            try store.reorderProjects(ordered.map(\.id))
+            reload()
+        } catch {
+            lastError = "调整项目顺序失败：\(error.localizedDescription)"
+        }
+    }
+
     func update(_ project: ProjectItem) {
         do {
             try store.updateProject(project)
