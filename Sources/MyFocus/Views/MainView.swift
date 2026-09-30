@@ -19,20 +19,6 @@ struct MainView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                TextField("搜索", text: $app.searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 220)
-                    .focused($searchFocused)
-                    .onChange(of: app.searchText) { app.reload() }
-                    .onChange(of: app.searchFocusRequest) { _, _ in
-                        searchFocused = true
-                    }
-                    .onKeyPress(.escape) {
-                        app.searchText = ""
-                        app.reload()
-                        searchFocused = false
-                        return .handled
-                    }
                 Toggle(isOn: Binding(
                     get: { app.showCompleted },
                     set: {
@@ -55,6 +41,22 @@ struct MainView: View {
                 } label: {
                     Label("新建任务", systemImage: "plus")
                 }
+            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                TextField("搜索", text: $app.searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 220)
+                    .focused($searchFocused)
+                    .onChange(of: app.searchText) { app.reload() }
+                    .onChange(of: app.searchFocusRequest) { _, _ in
+                        searchFocused = true
+                    }
+                    .onKeyPress(.escape) {
+                        app.searchText = ""
+                        app.reload()
+                        searchFocused = false
+                        return .handled
+                    }
             }
         }
         .alert(
