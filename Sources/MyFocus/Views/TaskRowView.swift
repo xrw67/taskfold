@@ -96,9 +96,13 @@ struct TaskRow: View {
     var showProjectName = false
     /// 大纲层级（顶层=0），子任务递归 +1，用于视觉缩进
     var depth = 0
+    /// 是否响应行间拖放（今天/搜索视图禁用）
+    var supportsRowDrop = true
 
     @State private var editingText = ""
     @FocusState private var editing: Bool
+    /// 行间拖放悬停位置（上边缘=插前 / 下边缘=插后 / 中部=成为子任务）
+    @State private var hoverSlot: OutlineDropPosition?
 
     private var isEditing: Bool {
         app.editingTaskID == task.id
@@ -131,7 +135,7 @@ struct TaskRow: View {
     private var rowContent: some View {
         let children = app.subtasks[task.id] ?? []
         if children.isEmpty {
-            plainRow
+            dropDecorated(plainRow)
         } else {
             DisclosureGroup(
                 isExpanded: Binding(
@@ -146,9 +150,77 @@ struct TaskRow: View {
                     TaskRow(task: child, showProjectName: showProjectName, depth: depth + 1)
                 }
             } label: {
-                plainRow
+                dropDecorated(plainRow)
             }
         }
+    }
+
+    // MARK: 行间拖放（装饰挂在行标签上，随层级递归生效）
+
+    /// 中部 = 成为子任务；上/下 10pt 边缘 = 插入前/后；悬停显示插入线或淡色底
+    @ViewBuilder
+    private func dropDecorated(_ content: some View) -> some View {
+        if supportsRowDrop {
+            content
+                .background {
+                    if hoverSlot == .into {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.accentColor.opacity(0.15))
+                    }
+                }
+                .dropDestination(for: String.self) { items, _ in
+                    performDrop(items, position: .into)
+                } isTargeted: { setHover(.into, hovering: $0) }
+                .overlay(alignment: .top) {
+                    dropZone(position: .before)
+                        .frame(height: 10)
+                }
+                .overlay(alignment: .bottom) {
+                    dropZone(position: .after)
+                        .frame(height: 10)
+                }
+                .overlay(alignment: .top) {
+                    if hoverSlot == .before { insertionLine }
+                }
+                .overlay(alignment: .bottom) {
+                    if hoverSlot == .after { insertionLine }
+                }
+        } else {
+            content
+        }
+    }
+
+    /// 行边缘拖放条
+    private func dropZone(position: OutlineDropPosition) -> some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .dropDestination(for: String.self) { items, _ in
+                performDrop(items, position: position)
+            } isTargeted: { setHover(position, hovering: $0) }
+    }
+
+    /// 3pt 插入指示线
+    private var insertionLine: some View {
+        Capsule()
+            .fill(Color.accentColor)
+            .frame(height: 3)
+            .padding(.horizontal, 4)
+            .allowsHitTesting(false)
+    }
+
+    /// 悬停状态：置 nil 只清自己那个值，避免相邻区切换时闪烁
+    private func setHover(_ position: OutlineDropPosition, hovering: Bool) {
+        if hovering {
+            hoverSlot = position
+        } else if hoverSlot == position {
+            hoverSlot = nil
+        }
+    }
+
+    private func performDrop(_ items: [String], position: OutlineDropPosition) -> Bool {
+        guard let first = items.first, let id = UUID(uuidString: first) else { return false }
+        hoverSlot = nil
+        return app.dropTask(id, relativeTo: task, position: position)
     }
 
     private var plainRow: some View {

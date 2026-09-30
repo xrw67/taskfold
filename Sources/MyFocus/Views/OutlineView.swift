@@ -45,9 +45,9 @@ struct OutlineView: View {
                         ForEach([(TodaySection.overdue, overdue), (.today, today), (.next7Days, next7)], id: \.0) { section, tasks in
                             if !tasks.isEmpty {
                                 Section {
-                                    ForEach(tasks) { task in
-                                        TaskRow(task: task, showProjectName: true)
-                                    }
+                                ForEach(tasks) { task in
+                                    TaskRow(task: task, showProjectName: true, supportsRowDrop: false)
+                                }
                                 } header: {
                                     TodaySectionHeader(
                                         title: section.rawValue,
@@ -79,7 +79,7 @@ struct OutlineView: View {
                     List(selection: $app.selectedTaskID) {
                         Section(title) {
                             ForEach(tasks) { task in
-                                TaskRow(task: task)
+                                TaskRow(task: task, supportsRowDrop: !app.isSearching)
                             }
                         }
                     }

@@ -44,6 +44,13 @@ public struct ProjectItem: Identifiable, Codable, Sendable, Equatable {
     }
 }
 
+/// 任务在大纲中的拖拽落点：插到锚点前/后（同容器兄弟）或成为锚点的子任务
+public enum OutlineDropPosition: Sendable, Equatable {
+    case before
+    case after
+    case into
+}
+
 /// 任务：最小待办单元。V1 子任务最多一层（parentID 指向同为任务的父项）
 public struct TaskItem: Identifiable, Codable, Sendable, Equatable {
     public var id: UUID

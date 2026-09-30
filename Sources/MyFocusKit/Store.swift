@@ -373,6 +373,100 @@ public final class TaskStore: Sendable {
         )
     }
 
+    /// 行间拖拽：把任务放到锚点前/后（成为锚点的同容器兄弟）或作为锚点的末位子任务。
+    /// 子树经 parentID 链自动跟随；拖入自身子树、落点无变化时返回 false。
+    @discardableResult
+    public func dropTask(
+        _ taskID: UUID,
+        relativeTo anchorID: UUID,
+        position: OutlineDropPosition
+    ) throws -> Bool {
+        try db.write { db in
+            guard taskID != anchorID,
+                  let task = try TaskItem.filter(id: taskID).fetchOne(db),
+                  let anchor = try TaskItem.filter(id: anchorID).fetchOne(db)
+            else { return false }
+
+            // 锚点不能在拖动任务的子树内
+            var subtreeIDs: Set<UUID> = []
+            var frontier = [taskID]
+            while let id = frontier.popLast() {
+                let childIDs = try TaskItem.filter(Column("parentID") == id).fetchAll(db).map(\.id)
+                subtreeIDs.formUnion(childIDs)
+                frontier.append(contentsOf: childIDs)
+            }
+            if subtreeIDs.contains(anchorID) { return false }
+
+            // 目标容器
+            let newParent = position == .into ? anchor.id : anchor.parentID
+            let newProject = anchor.projectID
+            let sameContainer = task.parentID == newParent && task.projectID == newProject
+
+            // 原容器去掉拖动任务后的序列
+            var oldList = try siblings(db, of: task)
+            oldList.removeAll { $0.id == taskID }
+
+            // 目标容器序列（同容器时即 oldList）
+            var newList: [TaskItem]
+            if sameContainer {
+                newList = oldList
+            } else {
+                var probe = task
+                probe.parentID = newParent
+                probe.projectID = newProject
+                newList = try siblings(db, of: probe)
+            }
+
+            // 插入下标
+            let insertIndex: Int
+            switch position {
+            case .into:
+                insertIndex = newList.count
+            case .before, .after:
+                guard let anchorIndex = newList.firstIndex(where: { $0.id == anchorID }) else { return false }
+                insertIndex = position == .before ? anchorIndex : anchorIndex + 1
+            }
+
+            var final = newList
+            final.insert(task, at: insertIndex)
+
+            // 落点与当前位置相同 → 无操作
+            let originalOrder = try siblings(db, of: task).map(\.id)
+            if final.map(\.id) == originalOrder { return false }
+
+            let now = Date()
+            // 拖动任务本身
+            try TaskItem.filter(id: taskID).updateAll(
+                db,
+                Column("parentID").set(to: newParent),
+                Column("projectID").set(to: newProject),
+                Column("sortIndex").set(to: insertIndex),
+                Column("updatedAt").set(to: now)
+            )
+            // 容器整体重编号（同容器只重排一次；跨容器新旧分别重排）
+            let renumber: ([TaskItem]) throws -> Void = { list in
+                for (index, item) in list.enumerated() where item.id != taskID {
+                    try TaskItem.filter(id: item.id).updateAll(
+                        db, Column("sortIndex").set(to: index), Column("updatedAt").set(to: now))
+                }
+            }
+            if sameContainer {
+                try renumber(final)
+            } else {
+                try renumber(oldList)
+                try renumber(final)
+                // 跨项目时级联更新后代 projectID（保证徽章等按项目统计正确）
+                if task.projectID != newProject {
+                    for id in subtreeIDs {
+                        try TaskItem.filter(id: id).updateAll(
+                            db, Column("projectID").set(to: newProject), Column("updatedAt").set(to: now))
+                    }
+                }
+            }
+            return true
+        }
+    }
+
     // MARK: 首启示例数据（需求 7.3）
 
     /// 库为空时写入示例项目与任务，让新用户立即看到完整工作流。返回是否写入了。

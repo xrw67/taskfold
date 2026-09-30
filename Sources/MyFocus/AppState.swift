@@ -332,6 +332,22 @@ final class AppState {
         }
     }
 
+    /// 行间拖拽落点：插前/插后/成为子任务（子树跟随）。返回是否生效（拖入自身子树/无变化 beep 并返回 false）
+    @discardableResult
+    func dropTask(_ id: UUID, relativeTo anchor: TaskItem, position: OutlineDropPosition) -> Bool {
+        do {
+            if try store.dropTask(id, relativeTo: anchor.id, position: position) {
+                if case .into = position { expandedParents.insert(anchor.id) }
+                reload()
+                return true
+            }
+        } catch {
+            lastError = "移动任务失败：\(error.localizedDescription)"
+        }
+        NSSound.beep()
+        return false
+    }
+
     // MARK: 方向键导航（↑↓←→）
 
     /// 当前视图可见行的扁平序列，顺序与 OutlineView 渲染一致：
