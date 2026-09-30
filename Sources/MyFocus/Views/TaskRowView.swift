@@ -8,6 +8,8 @@ struct StatusCircle: View {
     let task: TaskItem
     var onToggle: () -> Void
     var onDrop: () -> Void
+    /// 圈外径；图标字号与热区随之缩放（大纲行 18，检查器头部 22）
+    var size: CGFloat = 18
 
     private var icon: String? {
         switch task.status {
@@ -39,15 +41,15 @@ struct StatusCircle: View {
             ZStack {
                 Circle()
                     .strokeBorder(color, lineWidth: 1.5)
-                    .frame(width: 18, height: 18)
+                    .frame(width: size, height: size)
                 if let icon {
                     Image(systemName: icon)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: size * 0.45, weight: .bold))
                         .foregroundStyle(color)
                 }
             }
-            // 热区放大到 24pt，降低紧凑行距下点到相邻行的概率
-            .frame(width: 24, height: 24)
+            // 热区放大，降低紧凑行距下点到相邻行的概率
+            .frame(width: size + 6, height: size + 6)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -18,53 +18,72 @@ struct InspectorView: View {
                 )
             }
         }
-        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     // MARK: - 任务检查器
 
     private func taskInspector(_ task: TaskItem) -> some View {
-        @Bindable var app = app
-        return Form {
-            Section("任务") {
-                TextField("标题", text: taskBinding(task, \.title))
-                    .onSubmit { app.update(task) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 10) {
+                    StatusCircle(task: task, onToggle: {
+                        app.toggleComplete(task)
+                    }, onDrop: {
+                        app.setStatus(task, to: task.status == .active ? .dropped : .active)
+                    }, size: 22)
 
-                Picker("状态", selection: taskBinding(task, \.status)) {
-                    ForEach(ItemStatus.allCases, id: \.self) { status in
-                        Text(status.label).tag(status)
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("标题", text: taskBinding(task, \.title))
+                            .textFieldStyle(.plain)
+                            .font(.title3.weight(.semibold))
+                            .strikethrough(task.status != .active)
+                            .foregroundStyle(task.status == .active ? .primary : .secondary)
+                            .onSubmit { app.update(task) }
+
+                        HStack(spacing: 8) {
+                            if let projectID = task.projectID,
+                               let project = app.projects.first(where: { $0.id == projectID }) {
+                                Label(project.name, systemImage: "folder")
+                                    .font(.caption)
+                                    .foregroundStyle(.tint)
+                            }
+                            if let due = task.dueDate {
+                                DueChip(due: due)
+                            }
+                            if !task.note.isEmpty {
+                                Image(systemName: "note.text")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
-            }
 
-            Section("归属") {
-                Picker("项目", selection: Binding(
-                    get: { task.projectID },
-                    set: { app.assign(task, to: $0) }
-                )) {
-                    Text("收件箱").tag(UUID?.none)
-                    ForEach(app.projects) { project in
-                        Text(project.name).tag(UUID?.some(project.id))
-                    }
-                }
-            }
+                Divider()
 
-            Section("时间") {
+                statusRow(task.status) { app.setStatus(task, to: $0) }
+
+                projectRow(task)
+
                 DueDateRow(task: task)
-            }
 
-            Section("备注") {
-                TextEditor(text: taskBinding(task, \.note))
-                    .frame(minHeight: 80)
-            }
+                Divider()
 
-            Section("元数据") {
-                LabeledContent("创建于", value: task.createdAt.formatted(.dateTime.year().month().day().hour().minute()))
-                LabeledContent("修改于", value: task.updatedAt.formatted(.dateTime.year().month().day().hour().minute()))
+                noteSection(text: taskBinding(task, \.note), minHeight: 100)
+
+                Divider()
+
+                Text(
+                    "创建于 \(task.createdAt.formatted(date: .abbreviated, time: .shortened)) · "
+                        + "修改于 \(task.updatedAt.formatted(date: .abbreviated, time: .shortened))"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
-        .formStyle(.grouped)
     }
 
     /// 通用绑定：写入即保存
@@ -81,54 +100,196 @@ struct InspectorView: View {
 
     // MARK: - 项目检查器
 
-    private func projectInspector(_ project: ProjectItem) -> some View {        @Bindable var app = app
-        return Form {
-            Section("项目") {
-                TextField("名称", text: Binding(
-                    get: { project.name },
-                    set: { name in
-                        var p = project
-                        p.name = name
-                        app.update(p)
+    private func projectInspector(_ project: ProjectItem) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: project.status == .active ? "folder" : "folder.badge.minus")
+                        .font(.system(size: 20))
+                        .foregroundStyle(project.status == .active ? Color.accentColor : .secondary)
+                        .frame(width: 28, height: 28)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("名称", text: Binding(
+                            get: { project.name },
+                            set: { name in
+                                var p = project
+                                p.name = name
+                                app.update(p)
+                            }
+                        ))
+                        .textFieldStyle(.plain)
+                        .font(.title3.weight(.semibold))
+                        .onSubmit { app.update(project) }
+
+                        Text("\(app.projectBadges[project.id]?.remaining ?? 0) 个剩余 · \(app.projectBadges[project.id]?.overdue ?? 0) 个逾期")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                ))
-                .onSubmit { app.update(project) }
-
-                Picker("状态", selection: Binding(
-                    get: { project.status },
-                    set: { app.setProjectStatus(project, to: $0) }
-                )) {
-                    Text("进行中").tag(ItemStatus.active)
-                    Text("已完成").tag(ItemStatus.completed)
-                    Text("已放弃").tag(ItemStatus.dropped)
                 }
-            }
 
-            Section("备注") {
-                TextEditor(text: Binding(
+                Divider()
+
+                statusRow(project.status) { app.setProjectStatus(project, to: $0) }
+
+                Divider()
+
+                noteSection(text: Binding(
                     get: { project.note },
                     set: { note in
                         var p = project
                         p.note = note
                         app.update(p)
                     }
-                ))
-                .frame(minHeight: 80)
-            }
+                ), minHeight: 100)
 
-            Section("统计") {
-                LabeledContent("剩余任务", value: "\(app.projectBadges[project.id]?.remaining ?? 0)")
-                LabeledContent("逾期", value: "\(app.projectBadges[project.id]?.overdue ?? 0)")
-                LabeledContent("创建于", value: project.createdAt.formatted(.dateTime.year().month().day()))
+                Divider()
+
+                Text("创建于 \(project.createdAt.formatted(date: .abbreviated, time: .omitted))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
-        .formStyle(.grouped)
+    }
+
+    // MARK: - 共享行组件
+
+    /// 状态行：右侧彩色胶囊菜单
+    private func statusRow(_ status: ItemStatus, action: @escaping (ItemStatus) -> Void) -> some View {
+        HStack {
+            Label("状态", systemImage: "flag")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Menu {
+                ForEach(ItemStatus.allCases, id: \.self) { candidate in
+                    Button {
+                        action(candidate)
+                    } label: {
+                        if candidate == status {
+                            Label(candidate.label, systemImage: "checkmark")
+                        } else {
+                            Text(candidate.label)
+                        }
+                    }
+                }
+            } label: {
+                menuLabel(color: Self.statusColor(status), text: status.label)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+    }
+
+    /// 归属行：右侧项目菜单
+    private func projectRow(_ task: TaskItem) -> some View {
+        let currentName = task.projectID.flatMap { id in
+            app.projects.first { $0.id == id }?.name
+        } ?? "收件箱"
+
+        return HStack {
+            Label("项目", systemImage: "folder")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Menu {
+                Button {
+                    app.assign(task, to: nil)
+                } label: {
+                    if task.projectID == nil { Label("收件箱", systemImage: "checkmark") } else { Text("收件箱") }
+                }
+                ForEach(app.projects) { project in
+                    Button {
+                        app.assign(task, to: project.id)
+                    } label: {
+                        if task.projectID == project.id {
+                            Label(project.name, systemImage: "checkmark")
+                        } else {
+                            Text(project.name)
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(currentName)
+                    chevron
+                }
+                .foregroundStyle(.primary)
+                .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+    }
+
+    /// 备注区：小节标题 + 圆角灰底输入框
+    private func noteSection(text: Binding<String>, minHeight: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionLabel("备注")
+            TextEditor(text: text)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .frame(minHeight: minHeight + 16, alignment: .topLeading)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(.quaternary.opacity(0.5))
+                )
+        }
+    }
+
+    /// 菜单胶囊标签：彩点 + 文字 + 下拉箭头
+    private func menuLabel(color: Color, text: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Text(text)
+            chevron
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.12), in: Capsule())
+        .contentShape(Capsule())
+    }
+
+    private var chevron: some View {
+        Image(systemName: "chevron.up.chevron.down")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+    }
+
+    fileprivate static func statusColor(_ status: ItemStatus) -> Color {
+        switch status {
+        case .active: .accentColor
+        case .completed: .green
+        case .dropped: .secondary
+        }
+    }
+}
+
+// MARK: - 小节标题
+
+private struct SectionLabel: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
     }
 }
 
 // MARK: - 截止日期（DT-1：值行 + 日历弹层）
 
-/// 检查器「时间」区的值行：显示截止时间或「无」，点击弹系统迷你月历
+/// 检查器「截止」行：显示截止时间或「无」，点击弹系统迷你月历
 private struct DueDateRow: View {
     @Environment(AppState.self) private var app
     let task: TaskItem
@@ -136,18 +297,22 @@ private struct DueDateRow: View {
     @State private var popoverShown = false
 
     var body: some View {
-        LabeledContent("截止") {
+        HStack {
+            Label("截止", systemImage: "calendar")
+                .foregroundStyle(.secondary)
+            Spacer()
             Button {
                 popoverShown.toggle()
             } label: {
                 HStack(spacing: 4) {
-                    Text(task.dueDate?.formatted(
-                        .dateTime.month().day().weekday(.abbreviated).hour().minute())
-                        ?? "无"
-                    )
-                    .foregroundStyle(task.dueDate == nil ? .secondary : .primary)
-                    Image(systemName: "calendar")
-                        .font(.caption)
+                    if let due = task.dueDate {
+                        DueChip(due: due)
+                    } else {
+                        Text("无")
+                            .foregroundStyle(.secondary)
+                    }
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
                 .contentShape(Rectangle())
