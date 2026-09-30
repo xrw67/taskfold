@@ -122,11 +122,6 @@ struct TaskRow: View {
                 Divider()
                 Button("删除", role: .destructive) { app.delete(task) }
             }
-            .onTapGesture(count: 2) {
-                editingText = task.title
-                app.editingTaskID = task.id
-                editing = true
-            }
     }
 
     @ViewBuilder
@@ -247,17 +242,14 @@ struct TaskRow: View {
                         }
                     }
             } else {
-                if app.isSearching, let query = app.searchText.trimmingCharacters(in: .whitespaces) as String?,
-                   !query.isEmpty {
-                    Text(highlightedTitle(task.title, query: query))
-                        .strikethrough(task.status != .active)
-                        .lineLimit(2)
-                } else {
-                    Text(task.title)
-                        .strikethrough(task.status != .active)
-                        .foregroundStyle(task.status == .active ? .primary : .secondary)
-                        .lineLimit(2)
-                }
+                titleText
+                    // 双击重命名只挂标题：若挂整行，count:2 手势会迫使状态圈等按钮
+                    // 等双击窗口（约 0.5s）过期确认无第二击后才触发，点击明显发黏
+                    .onTapGesture(count: 2) {
+                        editingText = task.title
+                        app.editingTaskID = task.id
+                        editing = true
+                    }
 
                 if showProjectName, let projectID = task.projectID,
                    let project = app.projects.first(where: { $0.id == projectID }) {
@@ -280,6 +272,22 @@ struct TaskRow: View {
             }
         }
         .padding(.vertical, 3)
+    }
+
+    /// 标题文本（搜索时带命中高亮）
+    @ViewBuilder
+    private var titleText: some View {
+        if app.isSearching, let query = app.searchText.trimmingCharacters(in: .whitespaces) as String?,
+           !query.isEmpty {
+            Text(highlightedTitle(task.title, query: query))
+                .strikethrough(task.status != .active)
+                .lineLimit(2)
+        } else {
+            Text(task.title)
+                .strikethrough(task.status != .active)
+                .foregroundStyle(task.status == .active ? .primary : .secondary)
+                .lineLimit(2)
+        }
     }
 
     /// 搜索命中段高亮（KB-2）
