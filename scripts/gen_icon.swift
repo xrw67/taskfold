@@ -1,4 +1,5 @@
 // 生成 Taskfold 应用图标（macOS 11+ 规范：1024 画布，squircle 占 824pt，透明四角）
+// 设计：蓝渐变底 + 折纸对勾（task + fold——两片折面沿肘部折痕相接，短边暗面、长边亮面）
 // 用法：swift scripts/gen_icon.swift <输出目录>
 
 import AppKit
@@ -16,6 +17,9 @@ let cornerRadius = iconSize * 0.2245     // macOS 圆角比例
 
 let gradientTop = NSColor(calibratedRed: 0.42, green: 0.55, blue: 1.00, alpha: 1)  // #6B8CFF
 let gradientBottom = NSColor(calibratedRed: 0.16, green: 0.25, blue: 0.87, alpha: 1) // #2940DE
+
+let foldLight = NSColor(calibratedWhite: 1.0, alpha: 1)                          // 折纸亮面（长边）
+let foldDark = NSColor(calibratedRed: 0.725, green: 0.788, blue: 1.00, alpha: 1) // 折纸暗面（短边）#B9C9FF
 
 func squirclePath(in rect: NSRect, radius: CGFloat) -> NSBezierPath {
     NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
@@ -59,28 +63,44 @@ func drawIcon(size: CGFloat) -> NSImage {
     // 3. （内高光已移除：贴近边缘的弧线在小尺寸下会渲染成生硬的缺口）
     ctx.restoreGState()
 
-    // 4. 焦点环（focus 寓意的同心细环）
-    let ringCenter = NSPoint(x: canvas / 2, y: canvas / 2 - 12)
-    let ring = NSBezierPath()
-    ring.appendArc(
-        withCenter: ringCenter,
-        radius: 258,
-        startAngle: 0, endAngle: 360
-    )
-    NSColor.white.withAlphaComponent(0.16).setStroke()
-    ring.lineWidth = 14
-    ring.stroke()
+    // 4. 折纸对勾：整条先铺亮面（白），纸切平头 + 肘部尖角给出折纸的硬朗轮廓
+    let base = NSPoint(x: 512, y: 530)  // 几何基点：无旧焦点环后略上移，保持视觉居中
+    let a = NSPoint(x: base.x - 138, y: base.y - 22)   // 左端
+    let b = NSPoint(x: base.x - 28, y: base.y - 132)   // 肘部（折痕穿过此点）
+    let c = NSPoint(x: base.x + 150, y: base.y + 116)  // 右端
 
-    // 5. 对勾（圆头圆角，白色）
     let check = NSBezierPath()
-    check.move(to: NSPoint(x: ringCenter.x - 138, y: ringCenter.y - 22))
-    check.line(to: NSPoint(x: ringCenter.x - 28, y: ringCenter.y - 132))
-    check.line(to: NSPoint(x: ringCenter.x + 150, y: ringCenter.y + 116))
-    check.lineCapStyle = .round
-    check.lineJoinStyle = .round
+    check.move(to: a)
+    check.line(to: b)
+    check.line(to: c)
+    check.lineCapStyle = .butt
+    check.lineJoinStyle = .miter
     check.lineWidth = 76
-    NSColor.white.setStroke()
+    foldLight.setStroke()
     check.stroke()
+
+    // 5. 暗面折纸（短边）：止于肘部的平头切口即折痕，覆盖在亮面之上
+    let facet = NSBezierPath()
+    facet.move(to: a)
+    facet.line(to: b)
+    facet.lineCapStyle = .butt
+    facet.lineJoinStyle = .miter
+    facet.lineWidth = 76
+    foldDark.setStroke()
+    facet.stroke()
+
+    // 6. 折痕高光：沿切口一条细亮线，模拟折边受光
+    let abx = b.x - a.x, aby = b.y - a.y
+    let abLength = (abx * abx + aby * aby).squareRoot()
+    let nx = aby / abLength, ny = -abx / abLength  // AB 的法向（切口方向）
+    let half = check.lineWidth / 2
+    let crease = NSBezierPath()
+    crease.move(to: NSPoint(x: b.x - nx * half, y: b.y - ny * half))
+    crease.line(to: NSPoint(x: b.x + nx * half, y: b.y + ny * half))
+    crease.lineCapStyle = .butt
+    crease.lineWidth = 3
+    NSColor.white.withAlphaComponent(0.7).setStroke()
+    crease.stroke()
 
     ctx.restoreGState()
     image.unlockFocus()
