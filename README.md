@@ -1,4 +1,4 @@
-# MyFocus
+# Taskfold
 
 类 OmniFocus 的 macOS 本地待办管理应用。本地优先（SQLite，无账号无联网）、GTD 工作流（收集 → 整理 → 执行 → 完成）、SwiftUI 原生界面。
 
@@ -11,9 +11,9 @@ V1 范围（需求文档 6.1）全部实现：任务与项目（含一层子任�
 | 里程碑项 | 状态 | 说明 |
 | --- | --- | --- |
 | 存储选型（GRDB vs SwiftData） | ✅ M0 | **GRDB 7**（详见下文决策记录） |
-| 数据层（CRUD/级联/收件箱/今天窗口/搜索/徽章/大纲编辑操作） | ✅ | `Sources/MyFocusKit` |
+| 数据层（CRUD/级联/收件箱/今天窗口/搜索/徽章/大纲编辑操作） | ✅ | `Sources/TaskfoldKit` |
 | 单元测试 | ✅ | 74 个测试全部通过（swift-testing） |
-| 三栏窗口（侧边栏 / 大纲 / 检查器） | ✅ | `Sources/MyFocus`；检查器为自定义面板风（状态圆点头 + 摘要头部、彩色状态胶囊、图标属性行、圆角备注） |
+| 三栏窗口（侧边栏 / 大纲 / 检查器） | ✅ | `Sources/Taskfold`；检查器为自定义面板风（状态圆点头 + 摘要头部、彩色状态胶囊、图标属性行、圆角备注） |
 | 大纲键盘编辑（回车续行/Tab/⇧Tab/⌥↑↓） | ✅ | 见下表 |
 | 拖拽分配项目（INB-3，子任务跟随） | ✅ | 拖任务行到侧边栏项目/收件箱 |
 | 项目拖拽排序 | ✅ | 侧边栏拖动项目行调整顺序（原生 onMove） |
@@ -24,7 +24,7 @@ V1 范围（需求文档 6.1）全部实现：任务与项目（含一层子任�
 | 首启示例数据 | ✅ | 空库自动创建，可正常删除 |
 | 备份与恢复（DATA-1） | ✅ | 当天首次启动自动备份；「文件 → 立即备份」；设置中管理/恢复（在线热替换，无需重启）；默认保留 20 份可调 |
 | 导出 CSV / OPML / Markdown（DATA-2） | ✅ | 「文件 → 导出为」；CSV 带 BOM（Excel 中文友好）、OPML 可导入大纲工具、Markdown 为 GFM 任务列表（Obsidian/GitHub 直接渲染） |
-| 导入 CSV / OPML（原 V2 提前实现） | ✅ | 「文件 → 导入…」，限 MyFocus 自有导出格式；同名项目自动并入、导入前自动备份；导出 → 导入 roundtrip 有测试覆盖 |
+| 导入 CSV / OPML（原 V2 提前实现） | ✅ | 「文件 → 导入…」，限 Taskfold 自有导出格式；同名项目自动并入、导入前自动备份；导出 → 导入 roundtrip 有测试覆盖 |
 | 展开状态记忆 | ✅ | 大纲展开/折叠持久化到库（schema v2 加 `isExpanded` 列），重启与备份恢复后保持；随任务删除自动清理 |
 
 **已知偏差**：DT-2「即将到期窗口可配置」V1 固定为"今天内"，窗口配置移至 V2。
@@ -48,7 +48,7 @@ V1 范围（需求文档 6.1）全部实现：任务与项目（含一层子任�
 
 大纲快捷键（Tab/⇧Tab/回车/⌥↑↓/↑↓←→/Space/⌥Space）由应用级键盘监听（`KeyboardRouter`，NSEvent monitor）接管：**不依赖列表焦点**，任意焦点状态下都有效；文本输入时自动放行。子任务支持**任意层级嵌套**，完成/放弃/恢复和删除会递归作用于整棵子树。
 
-应用内也内置了同样的帮助（含本表）：**帮助 → 使用帮助（⌘?）**，内容来自打包资源 `Sources/MyFocus/Resources/Help.md`，与本节需同步维护。
+应用内也内置了同样的帮助（含本表）：**帮助 → 使用帮助（⌘?）**，内容来自打包资源 `Sources/Taskfold/Resources/Help.md`，与本节需同步维护。
 
 ## 开发环境
 
@@ -64,18 +64,18 @@ make run      # 运行应用（裸可执行，无 bundle）
 make bench    # 存储基准测试
 
 # Xcode 工作流
-open MyFocus.xcodeproj   # 用 Xcode 打开（App scheme 可调试、断点、Instruments）
+open Taskfold.xcodeproj   # 用 Xcode 打开（App scheme 可调试、断点、Instruments）
 make project             # 修改 project.yml 后重新生成 xcodeproj
-make xbuild              # xcodebuild 构建 .app（.build/xcode/Build/Products/Debug/MyFocus.app）
+make xbuild              # xcodebuild 构建 .app（.build/xcode/Build/Products/Debug/Taskfold.app）
 make xtest               # xcodebuild 跑测试
 make xapp                # 启动 xcodebuild 产物 .app
 ```
 
-- `MyFocus.xcodeproj` 由 [xcodegen](https://github.com/yonaskolb/XcodeGen) 从 `project.yml` 生成；改目标/依赖/签名请改 `project.yml` 再 `make project`，不要手改 pbxproj。
+- `Taskfold.xcodeproj` 由 [xcodegen](https://github.com/yonaskolb/XcodeGen) 从 `project.yml` 生成；改目标/依赖/签名请改 `project.yml` 再 `make project`，不要手改 pbxproj。
 - App 目标当前为 **Ad-hoc 签名**（本地运行无需开发者账号）；上架或 Developer ID 分发时在 `project.yml` 中调整签名配置。
-- `make run` 与 `.app` 共用同一个数据库（`~/Library/Application Support/MyFocus/MyFocus.sqlite`）。
+- `make run` 与 `.app` 共用同一个数据库（`~/Library/Application Support/Taskfold/Taskfold.sqlite`）。
 
-数据存储在 `~/.config/MyFocus/MyFocus.sqlite`（WAL 模式），自动备份在同目录 `Backups/`。旧版 `~/Library/Application Support/MyFocus/` 的数据会在启动时自动迁移（一次性，迁移后旧目录清理）。
+数据存储在 `~/.config/Taskfold/Taskfold.sqlite`（WAL 模式），自动备份在同目录 `Backups/`。旧版 `~/Library/Application Support/Taskfold/` 的数据会在启动时自动迁移（一次性，迁移后旧目录清理）。
 
 ## M0 决策记录：为什么选 GRDB 而不是 SwiftData
 
@@ -97,22 +97,22 @@ make xapp                # 启动 xcodebuild 产物 .app
 ## 项目结构
 
 ```
-MyFocus/
+Taskfold/
 ├── docs/requirements.md      # 需求文档（V1 = 5 个核心功能）
 ├── docs/cloudkit-sync-design.md  # V3 设计草案：CloudKit 同步（GRDB ↔ CKRecord 映射）
-├── Package.swift             # Swift Package：MyFocusKit / MyFocus / Bench / Tests
-├── project.yml               # xcodegen 描述 → 生成 MyFocus.xcodeproj
-├── MyFocus.xcodeproj/        # Xcode 工程（App/框架/Bench/测试 四目标）
+├── Package.swift             # Swift Package：TaskfoldKit / Taskfold / Bench / Tests
+├── project.yml               # xcodegen 描述 → 生成 Taskfold.xcodeproj
+├── Taskfold.xcodeproj/        # Xcode 工程（App/框架/Bench/测试 四目标）
 ├── Sources/
-│   ├── MyFocusKit/           # 数据层（无 UI 依赖）
+│   ├── TaskfoldKit/           # 数据层（无 UI 依赖）
 │   │   ├── Models.swift      # TaskItem / ProjectItem / ItemStatus / TodaySection
 │   │   └── Store.swift       # TaskStore：GRDB CRUD、查询、徽章计数、迁移
-│   ├── MyFocus/              # 应用（SwiftUI）
-│   │   ├── MyFocusApp.swift  # 入口 + 菜单命令（⌘N/⌘1-3/⌘⌫/⌘⌥I）
+│   ├── Taskfold/              # 应用（SwiftUI）
+│   │   ├── TaskfoldApp.swift  # 入口 + 菜单命令（⌘N/⌘1-3/⌘⌫/⌘⌥I）
 │   │   ├── AppState.swift    # @Observable 状态容器（视图状态 + 数据缓存 + 动作）
 │   │   └── Views/            # MainView（三栏 HSplitView）/ Sidebar / Outline / Inspector / Settings
 │   └── Bench/                # 存储基准测试
-└── Tests/MyFocusKitTests/    # swift-testing 单元测试
+└── Tests/TaskfoldKitTests/    # swift-testing 单元测试
 ```
 
 ## 下一步（V2，见需求文档 6.2）

@@ -1,4 +1,4 @@
-name: MyFocus
+name: Taskfold
 options:
   bundleIdPrefix: com.xrw
   deploymentTarget:
@@ -15,23 +15,23 @@ packages:
     url: https://github.com/groue/GRDB.swift
     from: 7.11.1
 targets:
-  MyFocus:
+  Taskfold:
     type: application
     platform: macOS
     sources:
       # Help.md 显式声明进 Resources 构建阶段：xcodegen 对 .md 无默认 build phase，
       # 不声明不会拷入 .app（拷入后平铺在 Contents/Resources 根，与 SPM 的子目录路径差异由 HelpView 双路径探测兜底）
-      - path: Sources/MyFocus
+      - path: Sources/Taskfold
         excludes:
           - Resources/Help.md
-      - path: Sources/MyFocus/Resources/Help.md
+      - path: Sources/Taskfold/Resources/Help.md
         buildPhase: resources
     dependencies:
-      - target: MyFocusKit
+      - target: TaskfoldKit
     info:
-      path: Sources/MyFocus/Info.plist
+      path: Sources/Taskfold/Info.plist
       properties:
-        CFBundleDisplayName: MyFocus
+        CFBundleDisplayName: Taskfold
         CFBundleShortVersionString: "0.1.0"
         CFBundleIconName: AppIcon
         LSMinimumSystemVersion: "14.0"
@@ -40,26 +40,26 @@ targets:
         NSSupportsAutomaticGraphicsSwitching: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.MyFocus
-        PRODUCT_NAME: MyFocus
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.Taskfold
+        PRODUCT_NAME: Taskfold
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # 本地分发：Ad-hoc 签名即可运行，无需开发者账号
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
         COMBINE_HIDPI_IMAGES: true
-  MyFocusKit:
+  TaskfoldKit:
     type: framework
     platform: macOS
     sources:
-      - Sources/MyFocusKit
+      - Sources/TaskfoldKit
     dependencies:
       - package: GRDB
     info:
-      path: Sources/MyFocusKit/Info.plist
+      path: Sources/TaskfoldKit/Info.plist
       properties: {}
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.MyFocusKit
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.TaskfoldKit
         DEFINES_MODULE: true
   Bench:
     type: tool
@@ -67,34 +67,34 @@ targets:
     sources:
       - Sources/Bench
     dependencies:
-      - target: MyFocusKit
+      - target: TaskfoldKit
       - package: GRDB
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.xrw.Bench
-  MyFocusKitTests:
+  TaskfoldKitTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - Tests/MyFocusKitTests
+      - Tests/TaskfoldKitTests
     dependencies:
-      - target: MyFocusKit
+      - target: TaskfoldKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.MyFocusKitTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.xrw.TaskfoldKitTests
         GENERATE_INFOPLIST_FILE: true
 schemes:
-  MyFocus:
+  Taskfold:
     build:
       targets:
-        MyFocus: all
+        Taskfold: all
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: false
       targets:
-        - MyFocusKitTests
+        - TaskfoldKitTests
     archive:
       config: Release
   Bench:

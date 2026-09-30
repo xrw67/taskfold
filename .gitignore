@@ -8,8 +8,8 @@ xcuserdata/
 *.xcresult
 
 # xcodegen 派生的 plist（由 project.yml 生成）
-Sources/MyFocus/Info.plist
-Sources/MyFocusKit/Info.plist
+Sources/Taskfold/Info.plist
+Sources/TaskfoldKit/Info.plist
 
 # macOS
 .DS_Store

@@ -19,27 +19,27 @@
 ## 1. 总体架构
 
 ```
-┌─ MyFocus (SwiftUI) ──────────────────────────────┐
+┌─ Taskfold (SwiftUI) ──────────────────────────────┐
 │ AppState ──→ SyncCoordinator（开关/状态展示/触发） │
 └──────────────┬───────────────────────────────────┘
                │ 依赖
-┌──────────────▼─ MyFocusSync（新 framework target）┐
+┌──────────────▼─ TaskfoldSync（新 framework target）┐
 │ CKSyncEngine 封装：上行导出 / 下行应用 / 冲突决策   │
 │ （CloudKit 访问全部收口在此，可协议化后单测）        │
 └──────────────┬───────────────────────────────────┘
                │ 读写（TaskStore 公开 API + 同步支撑方法）
-┌──────────────▼─ MyFocusKit ──────────────────────┐
+┌──────────────▼─ TaskfoldKit ──────────────────────┐
 │ TaskStore (GRDB) + v3 迁移：                      │
 │   pending_change / tombstone 表 + 变更捕获触发器    │
 └──────────────────────────────────────────────────┘
 ```
 
-- **MyFocusKit 不 import CloudKit**：保持数据层零网络依赖（AGENTS.md 边界）。同步层独立成 `MyFocusSync` target，仅通过 TaskStore 公开 API 与少量新增「同步支撑」方法交互
+- **TaskfoldKit 不 import CloudKit**：保持数据层零网络依赖（AGENTS.md 边界）。同步层独立成 `TaskfoldSync` target，仅通过 TaskStore 公开 API 与少量新增「同步支撑」方法交互
 - 网络与调度全部交给系统：CKSyncEngine（macOS 14+，与项目部署目标一致）内部维护上传队列、APNs 唤醒拉取、重试与状态持久化
 
 ## 2. 数据映射
 
-CloudKit private database，一个 custom zone `MyFocusZone`，两种 record 类型：
+CloudKit private database，一个 custom zone `TaskfoldZone`，两种 record 类型：
 
 | 本地 | CloudKit | 说明 |
 | --- | --- | --- |
@@ -112,7 +112,7 @@ END;
 
 ## 4. 同步引擎（CKSyncEngine）
 
-- `CKSyncEngine.Configuration`：privateCloudDatabase + stateStorage `.file(url)`（放 `~/.config/MyFocus/Sync/`，随库走但不进备份）
+- `CKSyncEngine.Configuration`：privateCloudDatabase + stateStorage `.file(url)`（放 `~/.config/Taskfold/Sync/`，随库走但不进备份）
 - 引擎持有 `syncState`：`.off / .running / .needsAccount / .error(String)`
 - 账号变化（登出/换号）：`accountChange` 事件 → 停引擎、清本地 pending、UI 提示；换号视为全新同步（先上传本地全量到新账号的 zone）
 - API 细节（事件名、delegate 方法签名）实现时以 SDK 文档为准，本文伪代码仅表意
@@ -137,7 +137,7 @@ fetchedDatabaseChanges 收到 deletedRecordID →
 
 ## 5. 冲突解决：行级 LWW
 
-决策器为**纯函数**（放 MyFocusKit，可单测）：
+决策器为**纯函数**（放 TaskfoldKit，可单测）：
 
 ```
 resolve(local: Row?, remote: Record) -> Decision
@@ -190,13 +190,13 @@ TaskStore 新增同步支撑方法（公开，收口在 `// MARK: 同步支撑`�
 
 ## 10. 测试计划
 
-**MyFocusKitTests（纯 SQLite，全部可自动化）**
+**TaskfoldKitTests（纯 SQLite，全部可自动化）**
 - 触发器完备性：add/update/setTaskStatus（级联）/deleteTask（级联）/setTaskProject（级联）/dropTask/重排 → pending 与墓碑断言；`isExpanded` 变更**不**产生 pending（回归锁定 §3 的 UPDATE OF 列表）
 - 决策器：§5 全部分支（含等值内容一致 skip、墓碑更新跳过、相等不一致本地胜）
 - upsert 撤 pending：远程落库后队列无残留（防回声）
 - 批量重排不变量：整批 updatedAt 一致 → 不会交错
 
-**MyFocusSyncTests（引擎协议化后注入 fake）**
+**TaskfoldSyncTests（引擎协议化后注入 fake）**
 - 上行：pending → record 组装字段映射全对；删除走墓碑路径
 - 下行：fetch 应用顺序、错误重试不丢队列
 
@@ -205,7 +205,7 @@ TaskStore 新增同步支撑方法（公开，收口在 `// MARK: 同步支撑`�
 ## 11. 里程碑
 
 1. **M1 数据基建**：v3 迁移（队列/墓碑/触发器）+ 决策器纯函数 + TaskStore 同步支撑方法 + 上述单测
-2. **M2 上行**：MyFocusSync target（Package.swift + project.yml 双体系）+ CKSyncEngine 接线 + 状态持久化
+2. **M2 上行**：TaskfoldSync target（Package.swift + project.yml 双体系）+ CKSyncEngine 接线 + 状态持久化
 3. **M3 下行闭环**：fetch 应用 + 冲突对决 + 回声防护双测
 4. **M4 产品化**：设置开关/状态/重置、恢复备份交互、账号变化处理
 5. **M5 双机验证**：七场景手动清单 + 节流观察

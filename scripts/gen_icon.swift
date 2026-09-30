@@ -1,4 +1,4 @@
-// 生成 MyFocus 应用图标（macOS 11+ 规范：1024 画布，squircle 占 824pt，透明四角）
+// 生成 Taskfold 应用图标（macOS 11+ 规范：1024 画布，squircle 占 824pt，透明四角）
 // 用法：swift scripts/gen_icon.swift <输出目录>
 
 import AppKit

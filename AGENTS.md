@@ -1,4 +1,4 @@
-# AGENTS.md — MyFocus 工作区说明
+# AGENTS.md — Taskfold 工作区说明
 
 类 OmniFocus 的 macOS 本地待办应用：SwiftUI + GRDB 7（SQLite），本地优先无联网，GTD 工作流。macOS 14+，Swift 6 严格并发。代码注释与 UI 文案均为中文。
 
@@ -18,15 +18,15 @@ make xtest      # xcodebuild 跑测试
 make xapp       # 启动 .app 产物
 ```
 
-两套构建体系并存：Swift Package 用于快速 CLI 迭代；`MyFocus.xcodeproj` 用于 IDE 调试与分发。**不要手改 pbxproj**——改 `project.yml` 后 `make project`。`Sources/*/Info.plist` 由 xcodegen 生成且已在 Package.swift 中 exclude，勿手动提交（见 .gitignore）。
+两套构建体系并存：Swift Package 用于快速 CLI 迭代；`Taskfold.xcodeproj` 用于 IDE 调试与分发。**不要手改 pbxproj**——改 `project.yml` 后 `make project`。`Sources/*/Info.plist` 由 xcodegen 生成且已在 Package.swift 中 exclude，勿手动提交（见 .gitignore）。
 
 ## 架构与边界
 
-- `Sources/MyFocusKit/` — 数据层框架，**禁止引入 UI 依赖**：
+- `Sources/TaskfoldKit/` — 数据层框架，**禁止引入 UI 依赖**：
   - `Models.swift`（TaskItem/ProjectItem/ItemStatus）、`Store.swift`（TaskStore：GRDB CRUD、迁移、徽章、大纲编辑操作）
   - `Backup.swift`（SQLite online backup，在线热替换）、`Export.swift`（CSV/OPML/Markdown）
-- `Sources/MyFocus/` — SwiftUI 应用：`MyFocusApp`（入口+菜单命令）、`AppState`（`@MainActor @Observable` 状态容器，视图状态+数据缓存+动作都在这里）、`KeyboardRouter`、`Views/`（三栏：Sidebar/Outline/Inspector/Settings）
-- `Sources/Bench/` — 存储基准；`Tests/MyFocusKitTests/` — swift-testing 单测
+- `Sources/Taskfold/` — SwiftUI 应用：`TaskfoldApp`（入口+菜单命令）、`AppState`（`@MainActor @Observable` 状态容器，视图状态+数据缓存+动作都在这里）、`KeyboardRouter`、`Views/`（三栏：Sidebar/Outline/Inspector/Settings）
+- `Sources/Bench/` — 存储基准；`Tests/TaskfoldKitTests/` — swift-testing 单测
 - TaskStore 用 DatabaseQueue 串行执行，V1 主线程同步调用即可（万级数据查询 <30ms）；WAL 模式；迁移用 GRDB DatabaseMigrator
 
 ## 关键设计决策（勿推翻）
@@ -37,8 +37,8 @@ make xapp       # 启动 .app 产物
 
 ## 数据与运行时
 
-- 数据库：`~/.config/MyFocus/MyFocus.sqlite`，备份在同目录 `Backups/`；`make run` 与 `.app` **共用同一数据库**（测试破坏性改动时注意）
-- 旧版 `~/Library/Application Support/MyFocus/` 启动时自动一次性迁移
+- 数据库：`~/.config/Taskfold/Taskfold.sqlite`，备份在同目录 `Backups/`；`make run` 与 `.app` **共用同一数据库**（测试破坏性改动时注意）
+- 应用原名 MyFocus，2026-09 改名 Taskfold：启动时一次性迁移旧数据（`~/.config/MyFocus/` 优先，含 Backups 与备份文件名前缀改写；更早的 `~/Library/Application Support/MyFocus/` 兜底；UserDefaults 从旧 bundle 域搬移）
 - 空库首启会创建示例数据；`showCompleted` 等用户偏好持久化在 UserDefaults
 
 ## 改动前必读

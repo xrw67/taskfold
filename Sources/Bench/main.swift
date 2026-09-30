@@ -87,9 +87,9 @@ enum BenchMain {
     static func main() throws {
         let projects = (0..<50).map { _ in UUID() }
         let samples = makeSamples(count: 10_000, projects: projects)
-        print("═══ MyFocus M0 存储基准（GRDB 7）：10,000 条任务 / 50 个项目 ═══")
+        print("═══ Taskfold M0 存储基准（GRDB 7）：10,000 条任务 / 50 个项目 ═══")
 
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("myfocus-bench-grdb.sqlite")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("taskfold-bench-grdb.sqlite")
         try? FileManager.default.removeItem(at: url)
         try? FileManager.default.removeItem(at: URL(fileURLWithPath: url.path + "-wal"))
 

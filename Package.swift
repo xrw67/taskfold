@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "MyFocus",
+    name: "Taskfold",
     platforms: [.macOS(.v14)],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.0.0"),
     ],
     targets: [
         .target(
-            name: "MyFocusKit",
+            name: "TaskfoldKit",
             dependencies: [.product(name: "GRDB", package: "GRDB.swift")],
             exclude: ["Info.plist"]  // xcodegen 生成，仅供 Xcode 工程使用
         ),
         .executableTarget(
-            name: "MyFocus",
-            dependencies: ["MyFocusKit"],
+            name: "Taskfold",
+            dependencies: ["TaskfoldKit"],
             exclude: ["Info.plist"],  // 同上
             resources: [
                 .process("Resources/Assets.xcassets"),
@@ -25,13 +25,13 @@ let package = Package(
         .executableTarget(
             name: "Bench",
             dependencies: [
-                "MyFocusKit",
+                "TaskfoldKit",
                 .product(name: "GRDB", package: "GRDB.swift"),
             ]
         ),
         .testTarget(
-            name: "MyFocusKitTests",
-            dependencies: ["MyFocusKit"]
+            name: "TaskfoldKitTests",
+            dependencies: ["TaskfoldKit"]
         ),
     ]
 )
