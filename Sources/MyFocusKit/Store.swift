@@ -205,6 +205,56 @@ public final class TaskStore: Sendable {
         }
     }
 
+    // MARK: 导入（DATA-2：与 TaskExporter/TaskImporter 对称）
+
+    /// 批量导入：单事务整体写入，失败全部回滚。
+    /// 与现有库同名的项目并入现有（不新建重复），该批任务的 projectID 相应改写；
+    /// 任务 sortIndex 按原顺序追加到各容器现有末尾之后。
+    /// 返回 (新建项目数, 导入任务数)。
+    @discardableResult
+    public func importData(_ data: ImportedData) throws -> (importedProjects: Int, importedTasks: Int) {
+        try db.write { db in
+            // 1. 项目：同名并入现有，其余追加到项目列表末尾
+            let existing = try ProjectItem.fetchAll(db)
+            var remap: [UUID: UUID] = [:]
+            var nextProjectSort = (try Int.fetchOne(db, ProjectItem.select(max(Column("sortIndex")))) ?? -1) + 1
+            var createdProjects = 0
+            for var project in data.projects {
+                if let hit = existing.first(where: { $0.name == project.name }) {
+                    remap[project.id] = hit.id
+                } else {
+                    project.sortIndex = nextProjectSort
+                    nextProjectSort += 1
+                    try project.insert(db)
+                    createdProjects += 1
+                }
+            }
+
+            // 2. 任务：重映射归属后，按容器分组追加排序（同容器内保持文件顺序）
+            struct Container: Hashable { let parentID: UUID?; let projectID: UUID? }
+            var containerBase: [Container: Int] = [:]
+            var tasks = data.tasks
+            for index in tasks.indices {
+                // 仅改写并入现有项目的引用；新建项目沿用解析时分配的 id
+                if let pid = tasks[index].projectID, let mapped = remap[pid] {
+                    tasks[index].projectID = mapped
+                }
+                let container = Container(parentID: tasks[index].parentID, projectID: tasks[index].projectID)
+                let base: Int
+                if let cached = containerBase[container] {
+                    base = cached
+                } else {
+                    base = try Self.nextSortIndex(db, parentID: container.parentID, projectID: container.projectID)
+                    containerBase[container] = base
+                }
+                tasks[index].sortIndex = base
+                containerBase[container] = base + 1
+                try tasks[index].insert(db)
+            }
+            return (createdProjects, tasks.count)
+        }
+    }
+
     // MARK: 任务
 
     @discardableResult
@@ -216,20 +266,25 @@ public final class TaskStore: Sendable {
     ) throws -> TaskItem {
         var task = TaskItem(title: title, projectID: projectID, parentID: parentID, dueDate: dueDate)
         try db.write { db in
-            var request = TaskItem.select(max(Column("sortIndex")))
-            switch (parentID, projectID) {
-            case (let parent?, _):
-                request = request.filter(Column("parentID") == parent)
-            case (nil, let project?):
-                request = request.filter(Column("projectID") == project && Column("parentID") == nil)
-            case (nil, nil):
-                request = request.filter(Column("projectID") == nil && Column("parentID") == nil)
-            }
-            let max: Int? = try Int.fetchOne(db, request)
-            task.sortIndex = (max ?? -1) + 1
+            task.sortIndex = try Self.nextSortIndex(db, parentID: parentID, projectID: projectID)
             try task.insert(db)
         }
         return task
+    }
+
+    /// 同容器内现有最大 sortIndex + 1（容器 = 某父任务之下 / 某项目顶层 / 收件箱顶层）
+    private static func nextSortIndex(_ db: Database, parentID: UUID?, projectID: UUID?) throws -> Int {
+        var request = TaskItem.select(max(Column("sortIndex")))
+        switch (parentID, projectID) {
+        case (let parent?, _):
+            request = request.filter(Column("parentID") == parent)
+        case (nil, let project?):
+            request = request.filter(Column("projectID") == project && Column("parentID") == nil)
+        case (nil, nil):
+            request = request.filter(Column("projectID") == nil && Column("parentID") == nil)
+        }
+        let max: Int? = try Int.fetchOne(db, request)
+        return (max ?? -1) + 1
     }
 
     /// 编辑任务内容（标题/备注/截止）。只更新内容字段——状态走 setTaskStatus、

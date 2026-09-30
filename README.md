@@ -12,7 +12,7 @@ V1 范围（需求文档 6.1）全部实现：任务与项目（含一层子任�
 | --- | --- | --- |
 | 存储选型（GRDB vs SwiftData） | ✅ M0 | **GRDB 7**（详见下文决策记录） |
 | 数据层（CRUD/级联/收件箱/今天窗口/搜索/徽章/大纲编辑操作） | ✅ | `Sources/MyFocusKit` |
-| 单元测试 | ✅ | 27 个测试全部通过（swift-testing） |
+| 单元测试 | ✅ | 74 个测试全部通过（swift-testing） |
 | 三栏窗口（侧边栏 / 大纲 / 检查器） | ✅ | `Sources/MyFocus`；检查器为自定义面板风（状态圆点头 + 摘要头部、彩色状态胶囊、图标属性行、圆角备注） |
 | 大纲键盘编辑（回车续行/Tab/⇧Tab/⌥↑↓） | ✅ | 见下表 |
 | 拖拽分配项目（INB-3，子任务跟随） | ✅ | 拖任务行到侧边栏项目/收件箱 |
@@ -24,6 +24,7 @@ V1 范围（需求文档 6.1）全部实现：任务与项目（含一层子任�
 | 首启示例数据 | ✅ | 空库自动创建，可正常删除 |
 | 备份与恢复（DATA-1） | ✅ | 当天首次启动自动备份；「文件 → 立即备份」；设置中管理/恢复（在线热替换，无需重启）；默认保留 20 份可调 |
 | 导出 CSV / OPML / Markdown（DATA-2） | ✅ | 「文件 → 导出为」；CSV 带 BOM（Excel 中文友好）、OPML 可导入大纲工具、Markdown 为 GFM 任务列表（Obsidian/GitHub 直接渲染） |
+| 导入 CSV / OPML（原 V2 提前实现） | ✅ | 「文件 → 导入…」，限 MyFocus 自有导出格式；同名项目自动并入、导入前自动备份；导出 → 导入 roundtrip 有测试覆盖 |
 | 展开状态记忆 | ✅ | 大纲展开/折叠持久化到库（schema v2 加 `isExpanded` 列），重启与备份恢复后保持；随任务删除自动清理 |
 
 **已知偏差**：DT-2「即将到期窗口可配置」V1 固定为"今天内"，窗口配置移至 V2。
@@ -98,6 +99,7 @@ make xapp                # 启动 xcodebuild 产物 .app
 ```
 MyFocus/
 ├── docs/requirements.md      # 需求文档（V1 = 5 个核心功能）
+├── docs/cloudkit-sync-design.md  # V3 设计草案：CloudKit 同步（GRDB ↔ CKRecord 映射）
 ├── Package.swift             # Swift Package：MyFocusKit / MyFocus / Bench / Tests
 ├── project.yml               # xcodegen 描述 → 生成 MyFocus.xcodeproj
 ├── MyFocus.xcodeproj/        # Xcode 工程（App/框架/Bench/测试 四目标）
@@ -115,4 +117,4 @@ MyFocus/
 
 ## 下一步（V2，见需求文档 6.2）
 
-标签、旗标、推迟日期（Defer）、顺序/并行项目、重复任务、系统提醒通知、Forecast 完整版（琴键+月历）、全局 Quick Entry、Quick Open、自然语言日期、导入（CSV/OPML）、富文本备注、文件夹、批编辑、撤销/重做；以及 V1 遗留的「即将到期窗口可配置」。（多层级嵌套、备份与导出、行间拖拽排序已提前实现）
+标签、旗标、推迟日期（Defer）、顺序/并行项目、重复任务、系统提醒通知、Forecast 完整版（琴键+月历）、全局 Quick Entry、Quick Open、自然语言日期、第三方格式导入（OmniFocus/Things 表头映射）、富文本备注、文件夹、批编辑、撤销/重做；以及 V1 遗留的「即将到期窗口可配置」。（多层级嵌套、备份与导出、行间拖拽排序、导入（CSV/OPML 自有格式）已提前实现）

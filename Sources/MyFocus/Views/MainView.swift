@@ -70,5 +70,16 @@ struct MainView: View {
         } message: {
             Text(app.lastError ?? "")
         }
+        .alert(
+            "导入完成",
+            isPresented: Binding(
+                get: { app.lastNotice != nil },
+                set: { if !$0 { app.lastNotice = nil } }
+            )
+        ) {
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(app.lastNotice ?? "")
+        }
     }
 }

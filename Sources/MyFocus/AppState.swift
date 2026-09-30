@@ -42,6 +42,8 @@ final class AppState {
     static let showCompletedKey = "showCompleted"
     var searchText = ""
     var lastError: String?
+    /// 成功类提示（如导入统计），经 MainView 的 alert 呈现
+    var lastNotice: String?
     /// ⌘F 请求聚焦搜索框：MainView 监听该值变化（菜单命令无法直接持有 FocusState）
     var searchFocusRequest = 0
     /// 方向键移动选中后自增：OutlineView 监听并 scrollTo 选中行
@@ -224,6 +226,48 @@ final class AppState {
             try content.write(to: url, atomically: true, encoding: .utf8)
         } catch {
             lastError = "写入文件失败：\(error.localizedDescription)"
+        }
+    }
+
+    /// 选择文件并导入（与 exportThenSave 对称）：CSV / OPML 为 MyFocus 自有导出格式。
+    /// 导入前自动备份一份快照（安全网，可在设置中恢复）；同名项目并入现有。
+    func importThenLoad() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "csv") ?? .commaSeparatedText,
+            UTType(filenameExtension: "opml") ?? .xml,
+        ]
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        let content: String
+        do {
+            content = try String(contentsOf: url, encoding: .utf8)
+        } catch {
+            lastError = "读取文件失败：\(error.localizedDescription)"
+            return
+        }
+
+        do {
+            try backupManager.createBackup(of: store)
+        } catch {
+            lastError = "导入前备份失败，已取消导入：\(error.localizedDescription)"
+            return
+        }
+
+        do {
+            let data: ImportedData
+            switch url.pathExtension.lowercased() {
+            case "opml": data = try TaskImporter.parseOPML(content)
+            default: data = try TaskImporter.parseCSV(content)
+            }
+            let result = try store.importData(data)
+            reload()
+            refreshBackups()
+            lastNotice = "已导入 \(result.importedTasks) 个任务、新建 \(result.importedProjects) 个项目（同名项目已并入现有）"
+        } catch {
+            lastError = "导入失败：\(error.localizedDescription)"
         }
     }
 

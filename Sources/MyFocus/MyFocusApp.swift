@@ -46,6 +46,7 @@ struct MyFocusApp: App {
                     .keyboardShortcut("n", modifiers: .command)
             }
             CommandGroup(after: .saveItem) {
+                Button("导入…") { appState?.importThenLoad() }
                 Menu("导出为") {
                     Button("CSV 表格…") { appState?.exportThenSave(.csv) }
                     Button("OPML 大纲…") { appState?.exportThenSave(.opml) }
